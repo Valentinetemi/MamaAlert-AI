@@ -42,8 +42,8 @@ async def analyze(data: TriageRequest):
         }]
     }
     
-    # Use the 'v1beta' endpoint with 'gemini-1.5-flash'
-    TARGET_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={GEMINI_API_KEY}"
+
+    TARGET_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
     try:
         if not GEMINI_API_KEY:
             return {"error": "API Key missing in .env"}
