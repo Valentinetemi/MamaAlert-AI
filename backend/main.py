@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 
 load_dotenv() # This loads the variables from .env
 API_KEY = os.getenv("GEMINI_API_KEY")
-# SETUP
 
+# SETUP
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
