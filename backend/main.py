@@ -13,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-genai.configure(api_key="AIzaSyBsiMGsT10W39YJ9Ia3vYwMXohpDmsiKkw")
+genai.configure(api_key="")
 
 #using flash
 model = genai.GenerativeModel('gemini-1.5-flash')
