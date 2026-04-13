@@ -25,18 +25,6 @@ class TriageRequest(BaseModel):
     text: str
     weeks: int
 
-
-# The prompt
-SYSTEM_CONTEXT = """
-You are the AI engine for MamaAlert, a maternal health triage tool for West Africa. 
-The user will speak in English or Nigerian Pidgin.
-Your task:
-1. Identify if the symptoms are an EMERGENCY (High BP, bleeding, blurred vision, contractions).
-2. Assign a Status: 'Emergency', 'Urgent', or 'Stable'.
-3. Give 3 short, clear Action Steps.
-4. Keep it empathetic. If it's an emergency, be firm: 'Go to the hospital now.'
-"""
-
 @app.post("/api/analyze")
 async def analyze_health(data: TriageRequest):
     user_message = f"User is {data.weeks} weeks pregnant. Symptoms: {data.text}"
