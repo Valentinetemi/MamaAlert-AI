@@ -44,6 +44,8 @@ async def analyze_health(data: TriageRequest):
         return response.json()
     except Exception as e:
         return {"error": "Connection failed", "details": str(e)}
+    
+@app.get("/")
 
 if __name__ == "__main__":
     import uvicorn
