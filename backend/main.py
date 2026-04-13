@@ -22,8 +22,8 @@ class TriageRequest(BaseModel):
     text: str
     weeks: int
 
-# 3. THE "MEDICAL EXPERT" PROMPT
-# This tells Gemini exactly how to behave so it doesn't give generic advice.
+
+# The prompt
 SYSTEM_CONTEXT = """
 You are the AI engine for MamaAlert, a maternal health triage tool for West Africa. 
 The user will speak in English or Nigerian Pidgin.
