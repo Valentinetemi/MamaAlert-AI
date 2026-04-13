@@ -48,7 +48,7 @@ async def analyze(data: TriageRequest):
         if not GEMINI_API_KEY:
             return {"error": "API Key missing in .env"}
             
-        response = requests.post(TARGET_URL, json=payload, timeout=30)
+        response = requests.post(TARGET_URL, json=payload, timeout=50)
         
         if response.status_code != 200:
             return {
