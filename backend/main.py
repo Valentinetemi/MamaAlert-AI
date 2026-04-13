@@ -21,9 +21,6 @@ app.add_middleware(
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
-#using flash
-model = genai.GenerativeModel('gemini-1.5-flash')
-
 class TriageRequest(BaseModel):
     text: str
     weeks: int
