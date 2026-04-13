@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-# 1. SETUP
+# SETUP
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -13,10 +13,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Replace with your actual key
-genai.configure(api_key="YOUR_GEMINI_API_KEY_HERE")
+genai.configure(api_key="AIzaSyBsiMGsT10W39YJ9Ia3vYwMXohpDmsiKkw")
 
-# 2. THE MODEL (Flash is fastest for hackathons)
+#using flash
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 class TriageRequest(BaseModel):
