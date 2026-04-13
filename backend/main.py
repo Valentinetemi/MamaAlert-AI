@@ -1,10 +1,11 @@
+import os
+import google.generativeai as genai
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
+# 1. SETUP
 app = FastAPI()
-
-# Allowing React frontend to talk to Python API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -12,48 +13,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Replace with your actual key
+genai.configure(api_key="YOUR_GEMINI_API_KEY_HERE")
+
+# 2. THE MODEL (Flash is fastest for hackathons)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
 class TriageRequest(BaseModel):
     text: str
-    weeks: int = 28
+    weeks: int
 
-# The Knowledge Base: Localized symptoms -> Severity
-KNOWLEDGE_BASE = {
-    "eye dey dark": {"label": "Visual Disturbance", "weight": 4},
-    "blurry": {"label": "Visual Disturbance", "weight": 4},
-    "head dey pain": {"label": "Severe Headache", "weight": 3},
-    "headache": {"label": "Severe Headache", "weight": 3},
-    "leg dey swell": {"label": "Edema", "weight": 2},
-    "swollen": {"label": "Edema", "weight": 2},
-    "belle dey strong": {"label": "Contractions", "weight": 4},
-    "blood": {"label": "Bleeding", "weight": 5},
-    "water don break": {"label": "Ruptured Membranes", "weight": 5},
-}
+# 3. THE "MEDICAL EXPERT" PROMPT
+# This tells Gemini exactly how to behave so it doesn't give generic advice.
+SYSTEM_CONTEXT = """
+You are the AI engine for MamaAlert, a maternal health triage tool for West Africa. 
+The user will speak in English or Nigerian Pidgin.
+Your task:
+1. Identify if the symptoms are an EMERGENCY (High BP, bleeding, blurred vision, contractions).
+2. Assign a Status: 'Emergency', 'Urgent', or 'Stable'.
+3. Give 3 short, clear Action Steps.
+4. Keep it empathetic. If it's an emergency, be firm: 'Go to the hospital now.'
+"""
 
-@app.post("/api/triage")
-async def analyze_symptoms(data: TriageRequest):
-    user_input = data.text.lower()
-    score = 0
-    detected = []
-
-    for phrase, info in KNOWLEDGE_BASE.items():
-        if phrase in user_input:
-            score += info["weight"]
-            detected.append(info["label"])
-
-    # The decision Matrix
-    if score >= 4:
-        result = {"status": "EMERGENCY", "color": "#fee2e2", "msg": "Go to the hospital NOW."}
-    elif score >= 2:
-        result = {"status": "URGENT", "color": "#fef3c7", "msg": "Call your doctor immediately."}
-    else:
-        result = {"status": "STABLE", "color": "#f0fdf4", "msg": "Monitor symptoms and rest."}
-
-    return {
-        "analysis": result,
-        "score": score,
-        "detected_symptoms": list(set(detected)), 
-        "provider_note": "Risk assessment based on localized NLP engine."
-    }
+@app.post("/api/analyze")
+async def analyze_health(data: TriageRequest):
+    user_message = f"User is {data.weeks} weeks pregnant. Symptoms: {data.text}"
+    
+    try:
+        # Generate the response
+        response = model.generate_content(f"{SYSTEM_CONTEXT}\n\nUser: {user_message}")
+        
+        # Return to React
+        return {
+            "success": True,
+            "analysis": response.text,
+            "raw_text": data.text
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
