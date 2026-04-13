@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
