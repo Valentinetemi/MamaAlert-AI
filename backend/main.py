@@ -26,7 +26,7 @@ class TriageRequest(BaseModel):
 
 @app.post("/api/analyze")
 async def analyze(data: TriageRequest):
-    # This prompt is the key to the triage logic
+    # key to the triage logic
     prompt = (
         f"Maternal health triage. User is {data.weeks} weeks pregnant. "
         f"Symptom: '{data.text}'. "
@@ -42,7 +42,7 @@ async def analyze(data: TriageRequest):
         }]
     }
     
-
+#used gemini-3-flash-preview
     TARGET_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
     try:
         if not GEMINI_API_KEY:
