@@ -17,7 +17,6 @@ class TriageRequest(BaseModel):
     weeks: int = 28
 
 # The Knowledge Base: Localized symptoms -> Severity
-# 
 KNOWLEDGE_BASE = {
     "eye dey dark": {"label": "Visual Disturbance", "weight": 4},
     "blurry": {"label": "Visual Disturbance", "weight": 4},
