@@ -46,6 +46,8 @@ async def analyze_health(data: TriageRequest):
         return {"error": "Connection failed", "details": str(e)}
     
 @app.get("/")
+def home():
+    return {"message": "MamaAlert API is working! Use /api/analyze for symptoms."}
 
 if __name__ == "__main__":
     import uvicorn
