@@ -39,7 +39,7 @@ async def analyze_health(data: TriageRequest):
     user_message = f"User is {data.weeks} weeks pregnant. Symptoms: {data.text}"
     
     try:
-        # Generate the response
+        #to generate the response
         response = model.generate_content(f"{SYSTEM_CONTEXT}\n\nUser: {user_message}")
         
         # Return to React
