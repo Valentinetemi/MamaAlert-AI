@@ -27,20 +27,23 @@ class TriageRequest(BaseModel):
 
 @app.post("/api/analyze")
 async def analyze_health(data: TriageRequest):
-    user_message = f"User is {data.weeks} weeks pregnant. Symptoms: {data.text}"
+    prompt = (
+        f"Maternal health triage. User is {data.weeks} weeks pregnant. "
+        f"Symptom: '{data.text}'. "
+        "Provide: 1. Status (Emergency/Urgent/Stable). 2. Action steps."
+    )
+    
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        #to generate the response
-        response = model.generate_content(f"{SYSTEM_CONTEXT}\n\nUser: {user_message}")
-        
-        # Return to React
-        return {
-            "success": True,
-            "analysis": response.text,
-            "raw_text": data.text
-        }
+        # Check if key exists
+        if not GEMINI_API_KEY:
+            return {"error": "API Key missing in .env"}
+            
+        response = requests.post(GEMINI_URL, json=payload, timeout=10)
+        return response.json()
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": "Connection failed", "details": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
