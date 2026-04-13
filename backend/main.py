@@ -25,22 +25,41 @@ class TriageRequest(BaseModel):
     weeks: int
 
 @app.post("/api/analyze")
-async def analyze_health(data: TriageRequest):
+async def analyze(data: TriageRequest):
+    # This prompt is the key to the triage logic
     prompt = (
         f"Maternal health triage. User is {data.weeks} weeks pregnant. "
         f"Symptom: '{data.text}'. "
         "Provide: 1. Status (Emergency/Urgent/Stable). 2. Action steps."
     )
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    # EXACT structure Google requires
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": prompt
+            }]
+        }]
+    }
     
+    # Use the 'v1beta' endpoint with 'gemini-1.5-flash'
+    TARGET_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={GEMINI_API_KEY}"
     try:
-        # Check if key exists
         if not GEMINI_API_KEY:
             return {"error": "API Key missing in .env"}
             
-        response = requests.post(GEMINI_URL, json=payload, timeout=10)
+        response = requests.post(TARGET_URL, json=payload, timeout=15)
+        
+        # This will help us debug if it fails again
+        if response.status_code != 200:
+            return {
+                "error": "Gemini API Error",
+                "status_code": response.status_code,
+                "details": response.json()
+            }
+            
         return response.json()
+        
     except Exception as e:
         return {"error": "Connection failed", "details": str(e)}
     
