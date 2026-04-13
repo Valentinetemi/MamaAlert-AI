@@ -33,7 +33,7 @@ async def analyze(data: TriageRequest):
         "Provide: 1. Status (Emergency/Urgent/Stable). 2. Action steps."
     )
     
-    # EXACT structure Google requires
+
     payload = {
         "contents": [{
             "parts": [{
@@ -48,9 +48,8 @@ async def analyze(data: TriageRequest):
         if not GEMINI_API_KEY:
             return {"error": "API Key missing in .env"}
             
-        response = requests.post(TARGET_URL, json=payload, timeout=15)
+        response = requests.post(TARGET_URL, json=payload, timeout=30)
         
-        # This will help us debug if it fails again
         if response.status_code != 200:
             return {
                 "error": "Gemini API Error",
