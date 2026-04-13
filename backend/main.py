@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 load_dotenv() # This loads the variables from .env
-API_KEY = os.getenv("GEMINI_API_KEY")
 
 # SETUP
 app = FastAPI()
@@ -18,7 +17,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-genai.configure(api_key="")
+# Pull key from environment
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 #using flash
 model = genai.GenerativeModel('gemini-1.5-flash')
