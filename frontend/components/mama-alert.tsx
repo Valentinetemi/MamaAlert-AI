@@ -1,292 +1,1488 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Home, Mic, AlertTriangle, Droplet, Leaf, Heart, 
-  Flower2, Award 
-} from 'lucide-react';
 
+// ─── TYPES ────────────────────────────────────────────────────────────────────
 interface UserData {
   name: string;
-  week: number;
+  phone: string;
+  lang: 'en' | 'yo' | 'pid';
+  dueDate: string;
+  hospital: string;
+  lastVisit: string;
+  nextAppointment: string;
   waterCount: number;
-  affirmation: string;
+  onboardingComplete: boolean;
 }
 
-const BloomSanctuary: React.FC = () => {
-  const [activeScreen, setActiveScreen] = useState<'home' | 'voice' | 'emergency'>('home');
-  const [isMicActive, setIsMicActive] = useState(false);
-  const [userData, setUserData] = useState<UserData>({
-    name: "Adaeze",
-    week: 28,
-    waterCount: 5,
-    affirmation: "You and your baby are blooming beautifully today 🌸"
+interface PregnancyInfo {
+  week: number;
+  day: number;
+  trimester: 1 | 2 | 3;
+  daysLeft: number;
+}
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const HOSPITALS = [
+  'Lagos University Teaching Hospital',
+  'National Hospital Abuja',
+  'UCH Ibadan',
+  'UNTH Enugu',
+  'Aminu Kano Teaching Hospital',
+  'Federal Medical Centre',
+  'Other',
+];
+
+const LANGS = [
+  { id: 'en' as const, label: 'English', sub: 'Default language' },
+  { id: 'yo' as const, label: 'Yorùbá', sub: 'Yoruba language' },
+  { id: 'pid' as const, label: 'Nigerian Pidgin', sub: 'Pidgin English' },
+];
+
+const NUTRITION_TIPS = [
+  'Ugu leaves or spinach for natural iron 🌿',
+  'Greek yogurt or wara (local cheese) for calcium 🥛',
+  'Avocado for healthy fats and folate 🥑',
+  'Beans & lentils for plant protein and fiber 🫘',
+  'Oranges for Vitamin C and hydration 🍊',
+  'Tiger nuts (ofio) for minerals and energy 🌾',
+];
+
+const SYMPTOMS = [
+  'Headache',
+  'Swelling (feet/hands)',
+  'Reduced baby movement',
+  'Bleeding',
+  'Nausea / Vomiting',
+  'Back pain',
+  'Blurry vision',
+  'Fever',
+];
+
+const TRIMESTER_COLORS = {
+  1: { bg: 'rgba(110,231,183,0.18)', text: '#059669', label: 'First Trimester' },
+  2: { bg: 'rgba(147,197,253,0.20)', text: '#2563EB', label: 'Second Trimester' },
+  3: { bg: 'rgba(249,168,212,0.20)', text: '#BE185D', label: 'Third Trimester' },
+} as const;
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
+  if (!dueDateStr) return { week: 28, day: 3, trimester: 2, daysLeft: 84 };
+  const now = new Date();
+  const dueDate = new Date(dueDateStr);
+  const conception = new Date(dueDate);
+  conception.setDate(conception.getDate() - 280);
+  const diffDays = Math.max(0, Math.floor((now.getTime() - conception.getTime()) / 86400000));
+  const week = Math.min(40, Math.floor(diffDays / 7)) as number;
+  const day = diffDays % 7;
+  const trimester: 1 | 2 | 3 = week <= 12 ? 1 : week <= 28 ? 2 : 3;
+  const daysLeft = Math.max(0, Math.floor((dueDate.getTime() - now.getTime()) / 86400000));
+  return { week, day, trimester, daysLeft };
+}
+
+function calcDaysSince(dateStr: string): number {
+  if (!dateStr) return 999;
+  return Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 86400000);
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getDailyTip(): string {
+  return NUTRITION_TIPS[Math.floor(Date.now() / 86400000) % NUTRITION_TIPS.length];
+}
+
+// ─── SVG ICONS ────────────────────────────────────────────────────────────────
+interface IconProps {
+  paths: string | string[];
+  size?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  className?: string;
+}
+function SvgIcon({ paths, size = 20, stroke = '#6B5057', strokeWidth = 1.8, className = '' }: IconProps) {
+  const pathArr = Array.isArray(paths) ? paths : [paths];
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {pathArr.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+    </svg>
+  );
+}
+
+const ICON_PATHS = {
+  home: ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10'],
+  mic: [
+    'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z',
+    'M19 10v2a7 7 0 0 1-14 0v-2',
+    'M12 19v4',
+    'M8 23h8',
+  ],
+  alert: [
+    'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+    'M12 9v4',
+    'M12 17h.01',
+  ],
+  flower: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  droplet: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z',
+  leaf: [
+    'M2 22c1.25-2 2.85-3.5 5-4.5C9.17 16.5 11.44 16 14 16c2.55 0 4.82.5 7 1.5',
+    'M2 22C2 12 6 6 12 2c6 4 10 10 10 20',
+  ],
+  heart: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+  hospital: ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 14h6', 'M12 11v6'],
+  phone: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92',
+};
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+interface OnboardingProps {
+  onComplete: (data: Omit<UserData, 'waterCount' | 'onboardingComplete'>) => void;
+}
+
+function Onboarding({ onComplete }: OnboardingProps) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({
+    lang: 'en' as 'en' | 'yo' | 'pid',
+    name: '',
+    phone: '',
+    dueDate: '',
+    hospital: '',
+    lastVisit: '',
+    nextAppointment: '',
   });
 
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('bloomUserData');
-    if (saved) setUserData(JSON.parse(saved));
-  }, []);
+  const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
-  // Save to localStorage
-  const updateWater = () => {
-    const newCount = Math.min(userData.waterCount + 1, 10);
-    const updated = { ...userData, waterCount: newCount };
-    setUserData(updated);
-    localStorage.setItem('bloomUserData', JSON.stringify(updated));
-  };
+  const canNext = [
+    form.lang !== '',
+    form.name.trim().length > 1 && form.phone.trim().length > 7,
+    form.dueDate !== '',
+  ][step];
 
-  const getDailyNutritionTip = () => {
-    const tips = [
-      "Eat ugu leaves or spinach today for natural iron 🌿",
-      "Add some avocado for healthy fats and folate 🥑",
-      "Try beans or lentils for protein and fiber 🫘",
-      "Have fresh oranges for Vitamin C and hydration 🍊"
-    ];
-    return tips[Math.floor(Date.now() / 86400000) % tips.length];
+  const next = () => {
+    if (step < 2) setStep((s) => s + 1);
+    else onComplete(form);
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF5F5] overflow-hidden font-sans">
-      {/* Floral Background Pattern */}
-      <div className="fixed inset-0 opacity-5 pointer-events-none"
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        background: 'linear-gradient(135deg, #FFF5F5 0%, #EBF8FF 50%, #F0FFF4 100%)',
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      {/* Google Fonts */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; }
+        .input-field { width:100%; padding:14px 18px; border:1.5px solid rgba(252,165,165,0.3); border-radius:1.2rem; font-family:'DM Sans',sans-serif; font-size:14px; background:rgba(255,255,255,0.7); color:#1C1014; outline:none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .input-field:focus { border-color:#F9A8D4; box-shadow:0 0 0 4px rgba(249,168,212,0.15); }
+        .input-field::placeholder { color:#B09099; }
+        .btn-primary { cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:500; width:100%; padding:14px 24px; background:linear-gradient(135deg,#F9A8D4,#93C5FD); color:#fff; border:none; border-radius:1.5rem; font-size:15px; transition:all 0.2s; }
+        .btn-primary:hover { opacity:0.9; box-shadow:0 8px 24px rgba(249,168,212,0.4); }
+        .btn-primary:active { transform:scale(0.97); }
+        .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+        .btn-outline { cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:400; width:100%; padding:12px 24px; background:transparent; color:#6B5057; border:1.5px solid rgba(252,165,165,0.4); border-radius:1.5rem; font-size:14px; transition:all 0.2s; margin-top:10px; }
+        .btn-outline:hover { background:rgba(252,165,165,0.06); }
+        .lang-btn { width:100%; padding:16px 20px; border:1.5px solid rgba(252,165,165,0.25); border-radius:1.5rem; background:transparent; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:15px; color:#1C1014; transition:all 0.2s; text-align:left; display:flex; flex-direction:column; gap:3px; }
+        .lang-btn:hover { background:rgba(249,168,212,0.07); border-color:#F9A8D4; }
+        .lang-btn.selected { background:linear-gradient(135deg,rgba(249,168,212,0.14),rgba(147,197,253,0.14)); border-color:#F9A8D4; box-shadow:0 4px 16px rgba(249,168,212,0.2); }
+        .step-dot { width:8px; height:8px; border-radius:999px; background:rgba(252,165,165,0.3); transition:all 0.3s; }
+        .step-dot.active { background:#F9A8D4; width:24px; border-radius:4px; }
+        .step-dot.done { background:#6EE7B7; }
+      `}</style>
+
+      <div
         style={{
-          backgroundImage: `radial-gradient(circle at 20% 30%, #EBF8FF 1px, transparent 1px)`,
-          backgroundSize: '40px 40px'
+          width: '100%',
+          maxWidth: 460,
+          background: 'rgba(255,255,255,0.88)',
+          backdropFilter: 'blur(32px)',
+          WebkitBackdropFilter: 'blur(32px)',
+          border: '1px solid rgba(255,255,255,0.6)',
+          borderRadius: '3rem',
+          padding: '44px 36px',
+          boxShadow: '0 32px 80px rgba(252,165,165,0.14)',
+        }}
+      >
+        {/* Brand */}
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '1.2rem',
+              background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <SvgIcon paths={ICON_PATHS.flower} size={28} stroke="#fff" strokeWidth={2} />
+          </div>
+          <h1
+            style={{
+              fontSize: 28,
+              fontFamily: "'Playfair Display', serif",
+              fontWeight: 300,
+              color: '#1C1014',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            MamaAlert
+          </h1>
+          <p style={{ color: '#B09099', fontSize: 13, marginTop: 4 }}>Your garden of care begins here</p>
+        </div>
+
+        {/* Step dots */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 32 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`step-dot ${i === step ? 'active' : i < step ? 'done' : ''}`} />
+          ))}
+        </div>
+
+        {/* Step 0 */}
+        {step === 0 && (
+          <div>
+            <h2 style={{ fontSize: 22, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginBottom: 6 }}>
+              Choose your language
+            </h2>
+            <p style={{ color: '#B09099', fontSize: 13, marginBottom: 20 }}>We&apos;ll personalise your experience</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {LANGS.map((l) => (
+                <button
+                  key={l.id}
+                  className={`lang-btn ${form.lang === l.id ? 'selected' : ''}`}
+                  onClick={() => set('lang', l.id)}
+                >
+                  <span style={{ fontWeight: 500 }}>{l.label}</span>
+                  <span style={{ fontSize: 12, color: '#B09099' }}>{l.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 1 */}
+        {step === 1 && (
+          <div>
+            <h2 style={{ fontSize: 22, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginBottom: 6 }}>
+              Your profile
+            </h2>
+            <p style={{ color: '#B09099', fontSize: 13, marginBottom: 20 }}>Just the basics, beautiful mama</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+                  Your name
+                </label>
+                <input
+                  className="input-field"
+                  placeholder="e.g. Adaeze"
+                  value={form.name}
+                  onChange={(e) => set('name', e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+                  Phone number
+                </label>
+                <input
+                  className="input-field"
+                  type="tel"
+                  placeholder="08012345678"
+                  value={form.phone}
+                  onChange={(e) => set('phone', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2 */}
+        {step === 2 && (
+          <div>
+            <h2 style={{ fontSize: 22, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginBottom: 6 }}>
+              Pregnancy details
+            </h2>
+            <p style={{ color: '#B09099', fontSize: 13, marginBottom: 20 }}>Help us track your beautiful journey</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+                  Estimated due date
+                </label>
+                <input
+                  className="input-field"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(e) => set('dueDate', e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+                  Your hospital / clinic
+                </label>
+                <select
+                  className="input-field"
+                  value={form.hospital}
+                  onChange={(e) => set('hospital', e.target.value)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="">Select hospital…</option>
+                  {HOSPITALS.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+                  Last antenatal visit
+                </label>
+                <input
+                  className="input-field"
+                  type="date"
+                  value={form.lastVisit}
+                  onChange={(e) => set('lastVisit', e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+                  Next appointment
+                </label>
+                <input
+                  className="input-field"
+                  type="date"
+                  value={form.nextAppointment}
+                  onChange={(e) => set('nextAppointment', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 24 }}>
+          <button className="btn-primary" onClick={next} disabled={!canNext}>
+            {step < 2 ? 'Continue →' : 'Enter My Garden 🌸'}
+          </button>
+          {step > 0 && (
+            <button className="btn-outline" onClick={() => setStep((s) => s - 1)}>
+              ← Back
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PREGNANCY CARD ───────────────────────────────────────────────────────────
+function PregnancyCard({ dueDate }: { dueDate: string }) {
+  const { week, day, trimester, daysLeft } = calcPregnancyInfo(dueDate);
+  const tc = TRIMESTER_COLORS[trimester];
+  const pct = Math.min(100, (week / 40) * 100);
+  const r = 44;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+
+  return (
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(249,168,212,0.25)',
+        borderRadius: '2.5rem',
+        padding: '24px',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        animation: 'float 4s ease-in-out infinite',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div>
+          <SvgIcon paths={ICON_PATHS.flower} size={26} stroke="#F9A8D4" strokeWidth={1.8} />
+          <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8 }}>
+            Your Journey
+          </h3>
+        </div>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '5px 12px',
+            borderRadius: '2rem',
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            background: tc.bg,
+            color: tc.text,
+          }}
+        >
+          T{trimester}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <svg width={108} height={108} viewBox="0 0 108 108">
+          <defs>
+            <linearGradient id="pRing" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#F9A8D4" />
+              <stop offset="100%" stopColor="#93C5FD" />
+            </linearGradient>
+          </defs>
+          <circle cx="54" cy="54" r={r} fill="none" stroke="rgba(249,168,212,0.15)" strokeWidth="7" />
+          <circle
+            cx="54"
+            cy="54"
+            r={r}
+            fill="none"
+            stroke="url(#pRing)"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            transform="rotate(-90 54 54)"
+            style={{ transition: 'stroke-dashoffset 1.2s ease' }}
+          />
+          <text
+            x="54"
+            y="49"
+            textAnchor="middle"
+            fontSize="20"
+            fontFamily="Playfair Display, serif"
+            fontWeight="300"
+            fill="#1C1014"
+          >
+            {week}
+          </text>
+          <text x="54" y="64" textAnchor="middle" fontSize="9" fontFamily="DM Sans, sans-serif" fill="#B09099">
+            of 40 wks
+          </text>
+        </svg>
+
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 22, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014', lineHeight: 1.2 }}>
+            Week {week}
+          </p>
+          <p style={{ fontSize: 13, color: '#B09099', marginTop: 2 }}>Day {day} of 7</p>
+          <p style={{ fontSize: 11, color: tc.text, marginTop: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {tc.label}
+          </p>
+          <p style={{ fontSize: 12, color: '#B09099', marginTop: 4 }}>{daysLeft} days to go 💕</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── HYDRATION CARD ───────────────────────────────────────────────────────────
+function HydrationCard({ count, onAdd }: { count: number; onAdd: () => void }) {
+  const pct = (count / 10) * 100;
+  return (
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(147,197,253,0.25)',
+        borderRadius: '2.5rem',
+        padding: '24px',
+        animation: 'float 5s ease-in-out 0.7s infinite',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div>
+          <SvgIcon paths={ICON_PATHS.droplet} size={26} stroke="#60A5FA" strokeWidth={1.8} />
+          <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8 }}>
+            Hydration
+          </h3>
+          <p style={{ fontSize: 12, color: '#B09099' }}>Stay watered, mama</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: 38, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#2563EB' }}>
+            {count}
+          </span>
+          <span style={{ fontSize: 13, color: '#B09099' }}>/10</span>
+        </div>
+      </div>
+
+      {/* Wave */}
+      <div
+        style={{
+          position: 'relative',
+          height: 110,
+          borderRadius: '1.4rem',
+          overflow: 'hidden',
+          background: 'linear-gradient(180deg, #EBF8FF 0%, #BFDBFE 100%)',
+          margin: '12px 0',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(180deg, #60A5FA, #3B82F6)',
+            borderRadius: '1.4rem 1.4rem 0 0',
+            transition: 'height 0.8s cubic-bezier(0.4,0,0.2,1)',
+            height: `${pct}%`,
+            animation: 'wave 3s ease-in-out infinite',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 500, color: pct > 50 ? '#fff' : '#3B82F6' }}>
+            {Math.round(pct)}%
+          </span>
+        </div>
+      </div>
+
+      <button
+        onClick={onAdd}
+        disabled={count >= 10}
+        style={{
+          cursor: count >= 10 ? 'not-allowed' : 'pointer',
+          width: '100%',
+          padding: '12px 20px',
+          background: count >= 10 ? '#E5E7EB' : 'linear-gradient(135deg,#60A5FA,#3B82F6)',
+          color: count >= 10 ? '#9CA3AF' : '#fff',
+          border: 'none',
+          borderRadius: '1.4rem',
+          fontFamily: "'DM Sans',sans-serif",
+          fontWeight: 500,
+          fontSize: 14,
+          transition: 'all 0.2s',
+        }}
+      >
+        + Drink a glass
+      </button>
+    </div>
+  );
+}
+
+// ─── NUTRITION CARD ───────────────────────────────────────────────────────────
+function NutritionCard() {
+  const todayTip = getDailyTip();
+  const others = NUTRITION_TIPS.filter((t) => t !== todayTip).slice(0, 3);
+
+  return (
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(110,231,183,0.25)',
+        borderRadius: '2.5rem',
+        padding: '24px',
+        animation: 'float 6s ease-in-out 1.4s infinite',
+      }}
+    >
+      <SvgIcon paths={ICON_PATHS.leaf} size={26} stroke="#059669" strokeWidth={1.8} />
+      <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8, marginBottom: 4 }}>
+        Bloom Nutrition
+      </h3>
+      <p style={{ fontSize: 12, color: '#B09099', marginBottom: 14 }}>Local superfoods for you &amp; baby</p>
+
+      <div
+        style={{
+          padding: '14px',
+          background: 'rgba(110,231,183,0.09)',
+          borderRadius: '1.2rem',
+          border: '1px solid rgba(110,231,183,0.2)',
+          marginBottom: 12,
+        }}
+      >
+        <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Today&apos;s focus
+        </p>
+        <p style={{ fontSize: 14, color: '#1C1014', marginTop: 4 }}>{todayTip}</p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {others.map((tip, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(110,231,183,0.6)', flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: '#6B5057' }}>{tip}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── CLINICAL CARD ────────────────────────────────────────────────────────────
+function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextAppointment: string }) {
+  const daysSince = calcDaysSince(lastVisit);
+  const isOverdue = daysSince > 28;
+  const daysUntilNext = nextAppointment
+    ? Math.floor((new Date(nextAppointment).getTime() - new Date().getTime()) / 86400000)
+    : null;
+
+  return (
+    <div
+      style={{
+        background: 'rgba(255,255,255,0.72)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: isOverdue ? '1px solid rgba(251,191,36,0.45)' : '1px solid rgba(249,168,212,0.25)',
+        borderRadius: '2.5rem',
+        padding: '24px',
+        boxShadow: isOverdue ? '0 0 0 3px rgba(251,191,36,0.18), 0 12px 40px rgba(251,191,36,0.12)' : undefined,
+        transition: 'all 0.5s ease',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div>
+          <SvgIcon paths={ICON_PATHS.hospital} size={26} stroke={isOverdue ? '#D97706' : '#F9A8D4'} strokeWidth={1.8} />
+          <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8 }}>
+            Clinical Visits
+          </h3>
+        </div>
+        {isOverdue && (
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: '#D97706',
+              background: 'rgba(251,191,36,0.12)',
+              padding: '4px 10px',
+              borderRadius: '2rem',
+              border: '1px solid rgba(251,191,36,0.3)',
+            }}
+          >
+            Book soon
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div
+          style={{
+            padding: '12px 14px',
+            background: 'rgba(249,168,212,0.06)',
+            borderRadius: '1.2rem',
+            border: '1px solid rgba(249,168,212,0.15)',
+          }}
+        >
+          <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Last Visit</p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: '#1C1014', marginTop: 3 }}>{formatDate(lastVisit)}</p>
+          <p style={{ fontSize: 12, color: isOverdue ? '#D97706' : '#059669', marginTop: 2 }}>
+            {isOverdue ? `⚠️ ${daysSince} days ago — schedule soon` : `✓ ${daysSince} days ago — on track`}
+          </p>
+        </div>
+
+        <div
+          style={{
+            padding: '12px 14px',
+            background: 'rgba(147,197,253,0.08)',
+            borderRadius: '1.2rem',
+            border: '1px solid rgba(147,197,253,0.2)',
+          }}
+        >
+          <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Next Appointment
+          </p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: '#1C1014', marginTop: 3 }}>{formatDate(nextAppointment)}</p>
+          {daysUntilNext !== null && daysUntilNext >= 0 && (
+            <p style={{ fontSize: 12, color: '#2563EB', marginTop: 2 }}>📅 In {daysUntilNext} days</p>
+          )}
+          {daysUntilNext !== null && daysUntilNext < 0 && (
+            <p style={{ fontSize: 12, color: '#D97706', marginTop: 2 }}>⚠️ Overdue — please reschedule</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── VOICE TRIAGE SCREEN ──────────────────────────────────────────────────────
+function VoiceScreen() {
+  const [micActive, setMicActive] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const toggle = (s: string) =>
+    setSelected((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
+
+  const runTriage = async () => {
+    if (!selected.length) return;
+    setLoading(true);
+    setResult('');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system:
+            'You are a compassionate maternal health triage assistant for Nigerian pregnant women. Given symptoms, give a brief (2–3 sentences) gentle assessment. If urgent, advise calling emergency services immediately. If moderate, advise seeing a doctor within 24 hours. If mild, suggest home care and monitoring. End with a clear action: "Call emergency now", "See a doctor within 24 hours", or "Monitor at home and rest". Be warm, clear, and supportive.',
+          messages: [{ role: 'user', content: `I am pregnant and experiencing: ${selected.join(', ')}. Please advise.` }],
+        }),
+      });
+      const data = await res.json();
+      setResult(data.content?.[0]?.text || 'Please consult your healthcare provider.');
+    } catch {
+      setResult('Unable to connect. Please call your doctor or visit your hospital immediately.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ maxWidth: 480, margin: '0 auto' }}>
+      {/* Mic */}
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.45)',
+          borderRadius: '2.5rem',
+          padding: '32px 24px',
+          textAlign: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <h2 style={{ fontSize: 20, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginBottom: 4 }}>
+          Voice Triage
+        </h2>
+        <p style={{ fontSize: 13, color: '#B09099', marginBottom: 28 }}>Tell your garden guide how you feel</p>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 170, position: 'relative' }}>
+          {micActive && (
+            <>
+              <div
+                style={{
+                  position: 'absolute',
+                  width: 155,
+                  height: 155,
+                  borderRadius: '50%',
+                  border: '2px solid rgba(249,168,212,0.4)',
+                  animation: 'pulseRing 1.8s ease-in-out infinite',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  width: 185,
+                  height: 185,
+                  borderRadius: '50%',
+                  border: '1.5px solid rgba(249,168,212,0.2)',
+                  animation: 'pulseRing 1.8s ease-in-out 0.4s infinite',
+                }}
+              />
+            </>
+          )}
+          <button
+            onClick={() => setMicActive((p) => !p)}
+            style={{
+              width: 130,
+              height: 130,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'transform 0.3s',
+              transform: micActive ? 'scale(1.08)' : 'scale(1)',
+              animation: micActive ? 'micPulse 1.5s ease-in-out infinite' : 'none',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            <SvgIcon paths={ICON_PATHS.mic} size={48} stroke="#fff" strokeWidth={1.5} />
+          </button>
+        </div>
+        <p style={{ fontSize: 15, fontStyle: 'italic', color: '#6B5057', marginTop: 8 }}>
+          {micActive ? "I'm listening, dear mama…" : 'Tap to speak'}
+        </p>
+      </div>
+
+      {/* Symptom chips */}
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.45)',
+          borderRadius: '2.5rem',
+          padding: '24px',
+          marginBottom: 16,
+        }}
+      >
+        <h3 style={{ fontSize: 15, fontWeight: 500, color: '#1C1014', marginBottom: 14 }}>
+          Or select your symptoms
+        </h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {SYMPTOMS.map((s) => (
+            <button
+              key={s}
+              onClick={() => toggle(s)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '2rem',
+                fontSize: 13,
+                fontFamily: "'DM Sans',sans-serif",
+                cursor: 'pointer',
+                border: selected.includes(s) ? '1.5px solid #F9A8D4' : '1.5px solid rgba(180,160,170,0.25)',
+                background: selected.includes(s) ? 'rgba(249,168,212,0.14)' : 'transparent',
+                color: selected.includes(s) ? '#BE185D' : '#6B5057',
+                transition: 'all 0.2s',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={runTriage}
+          disabled={!selected.length || loading}
+          style={{
+            width: '100%',
+            padding: '13px 20px',
+            background: !selected.length || loading ? '#E5E7EB' : 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+            color: !selected.length || loading ? '#9CA3AF' : '#fff',
+            border: 'none',
+            borderRadius: '1.4rem',
+            fontFamily: "'DM Sans',sans-serif",
+            fontWeight: 500,
+            fontSize: 14,
+            cursor: !selected.length || loading ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          {loading ? 'Assessing…' : 'Get AI Assessment'}
+        </button>
+      </div>
+
+      {/* Result */}
+      {result && (
+        <div
+          style={{
+            background: 'rgba(240,255,244,0.8)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(110,231,183,0.3)',
+            borderRadius: '2rem',
+            padding: '20px',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <SvgIcon paths={ICON_PATHS.heart} size={20} stroke="#059669" strokeWidth={1.8} />
+            <p style={{ fontSize: 14, color: '#1C1014', lineHeight: 1.75 }}>{result}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── EMERGENCY SCREEN ─────────────────────────────────────────────────────────
+function EmergencyScreen({ userData }: { userData: UserData }) {
+  const warnings = [
+    'Heavy or continuous bleeding',
+    'Severe headache with vision changes',
+    'Baby not moving for 12+ hours',
+    'Severe abdominal pain or cramps',
+    'High fever (above 38°C)',
+    'Difficulty breathing or chest pain',
+  ];
+
+  return (
+    <div style={{ maxWidth: 480, margin: '0 auto' }}>
+      <div
+        style={{
+          background: 'linear-gradient(135deg,#BE185D,#EF4444)',
+          borderRadius: '2.5rem',
+          padding: '36px',
+          textAlign: 'center',
+          marginBottom: 20,
+          color: '#fff',
+        }}
+      >
+        <SvgIcon paths={ICON_PATHS.alert} size={44} stroke="#fff" strokeWidth={1.8} />
+        <h2 style={{ fontSize: 26, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 12 }}>
+          Help is near, mama
+        </h2>
+        <p style={{ opacity: 0.85, fontSize: 14, marginTop: 6 }}>Emergency support is ready for you</p>
+      </div>
+
+      <button
+        style={{
+          width: '100%',
+          padding: '18px 24px',
+          background: 'linear-gradient(135deg,#EF4444,#EC4899)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '1.5rem',
+          fontFamily: "'DM Sans',sans-serif",
+          fontWeight: 600,
+          fontSize: 16,
+          cursor: 'pointer',
+          marginBottom: 12,
+          boxShadow: '0 8px 28px rgba(239,68,68,0.35)',
+        }}
+      >
+        📞 Call Emergency — 112
+      </button>
+
+      <button
+        style={{
+          width: '100%',
+          padding: '16px 24px',
+          background: 'linear-gradient(135deg,#7C3AED,#BE185D)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '1.5rem',
+          fontFamily: "'DM Sans',sans-serif",
+          fontWeight: 600,
+          fontSize: 15,
+          cursor: 'pointer',
+          marginBottom: 20,
+        }}
+      >
+        🏥 Call {userData.hospital || 'Your Hospital'}
+      </button>
+
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.45)',
+          borderRadius: '2rem',
+          padding: '22px',
+        }}
+      >
+        <h3 style={{ fontSize: 15, fontWeight: 500, color: '#1C1014', marginBottom: 12 }}>
+          Warning signs — act now if you have:
+        </h3>
+        {warnings.map((w, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+              padding: '8px 0',
+              borderBottom: i < warnings.length - 1 ? '1px solid rgba(252,165,165,0.1)' : 'none',
+            }}
+          >
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444', flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: '#6B5057' }}>{w}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
+  const [screen, setScreen] = useState<'home' | 'voice' | 'emergency'>('home');
+  const { week } = calcPregnancyInfo(userData.dueDate);
+
+  const addWater = () => {
+    const newCount = Math.min((userData.waterCount || 0) + 1, 10);
+    onUpdate({ waterCount: newCount });
+  };
+
+  type NavId = 'home' | 'voice' | 'emergency';
+  const navItems: { id: NavId; label: string; paths: string | string[] }[] = [
+    { id: 'home', label: 'Home', paths: ICON_PATHS.home },
+    { id: 'voice', label: 'Triage', paths: ICON_PATHS.mic },
+    { id: 'emergency', label: 'Emergency', paths: ICON_PATHS.alert },
+  ];
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans',sans-serif" }}>
+      {/* CSS animations */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes wave { 0%,100%{transform:scaleX(1) translateY(0)} 50%{transform:scaleX(1.04) translateY(-4px)} }
+        @keyframes pulseRing { 0%,100%{box-shadow:0 0 0 0 rgba(249,168,212,0.35)} 50%{box-shadow:0 0 0 18px rgba(249,168,212,0)} }
+        @keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(249,168,212,0.4)} 50%{box-shadow:0 0 0 16px rgba(249,168,212,0)} }
+        .card-hover:hover { transform:translateY(-4px); box-shadow:0 20px 60px rgba(252,165,165,0.12); }
+        .nav-active { background:rgba(255,255,255,0.9); box-shadow:0 4px 20px rgba(252,165,165,0.18); color:#BE185D; }
+        @media(max-width:767px){
+          .sidebar { display:none !important; }
+          .bottom-nav { display:flex !important; }
+          .content-pad { padding: 20px 16px 90px !important; }
+        }
+        @media(min-width:768px){
+          .sidebar { display:flex !important; width:80px !important; }
+          .sidebar-label { display:none !important; }
+          .bottom-nav { display:none !important; }
+          .bento-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media(min-width:1024px){
+          .sidebar { width:256px !important; }
+          .sidebar-label { display:block !important; }
+          .affirmation { display:block !important; }
+          .bento-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+        }
+      `}</style>
+
+      {/* Decorative blobs */}
+      <div
+        style={{
+          position: 'fixed',
+          width: 480,
+          height: 480,
+          borderRadius: '50%',
+          background: 'rgba(249,168,212,0.08)',
+          filter: 'blur(80px)',
+          top: -100,
+          right: -80,
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          width: 380,
+          height: 380,
+          borderRadius: '50%',
+          background: 'rgba(147,197,253,0.08)',
+          filter: 'blur(80px)',
+          bottom: -60,
+          left: -60,
+          pointerEvents: 'none',
+          zIndex: 0,
         }}
       />
 
-      <div className="flex min-h-screen">
-        {/* Desktop & Tablet Sidebar / Navigation Rail */}
-        <aside className="hidden md:flex w-20 lg:w-72 flex-col border-r border-[#F0FFF4] bg-white/70 backdrop-blur-xl z-50">
-          <div className="p-6 flex items-center gap-3 border-b border-[#F0FFF4]">
-            <div className="w-11 h-11 bg-gradient-to-br from-pink-300 to-blue-300 rounded-2xl flex items-center justify-center">
-              <Flower2 className="w-7 h-7 text-white" />
-            </div>
-            <div className="hidden lg:block">
-              <h1 className="text-3xl font-light italic text-[#2c1a22]">Bloom</h1>
-              <p className="text-xs text-pink-600 -mt-1">Garden Sanctuary</p>
-            </div>
+      {/* Sidebar */}
+      <aside
+        className="sidebar"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'rgba(255,255,255,0.88)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderRight: '1px solid rgba(249,168,212,0.15)',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          zIndex: 50,
+          transition: 'width 0.3s ease',
+        }}
+      >
+        <div
+          style={{
+            padding: '24px 16px 16px',
+            borderBottom: '1px solid rgba(249,168,212,0.12)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '1rem',
+              background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <SvgIcon paths={ICON_PATHS.flower} size={24} stroke="#fff" strokeWidth={2} />
           </div>
-
-          <nav className="flex-1 pt-8 px-3 lg:px-6 space-y-2">
-            {[
-              { id: 'home', label: 'Garden Home', icon: Home },
-              { id: 'voice', label: 'Voice Triage', icon: Mic },
-              { id: 'emergency', label: 'Emergency', icon: AlertTriangle },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeScreen === item.id;
-              return (
-                <motion.button
-                  key={item.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveScreen(item.id as any)}
-                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-3xl transition-all ${isActive
-                      ? 'bg-white shadow-md text-pink-600'
-                      : 'hover:bg-white/60 text-gray-600'
-                    }`}
-                >
-                  <Icon className="w-6 h-6" />
-                  <span className="font-medium hidden lg:block">{item.label}</span>
-                </motion.button>
-              );
-            })}
-          </nav>
-
-          <div className="p-6 border-t border-[#F0FFF4]">
-            <div className="flex items-center gap-3 bg-white/60 backdrop-blur rounded-3xl p-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-400 to-blue-400 flex items-center justify-center text-white font-semibold">A</div>
-              <div className="hidden lg:block">
-                <p className="font-medium">{userData.name}</p>
-                <p className="text-xs text-gray-500">Week {userData.week}</p>
-              </div>
-            </div>
+          <div className="sidebar-label" style={{ textAlign: 'center', marginTop: 10 }}>
+            <h1 style={{ fontSize: 20, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>
+              MamaAlert
+            </h1>
+            <p style={{ fontSize: 10, color: '#F9A8D4', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
+              Garden Sanctuary
+            </p>
           </div>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col min-h-screen">
-          {/* Top Bar */}
-          <header className="bg-white/80 backdrop-blur-lg border-b border-pink-100 sticky top-0 z-40 px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Flower2 className="w-8 h-8 text-pink-500 md:hidden" />
-              <div>
-                <p className="text-sm text-pink-600">Good morning, {userData.name}</p>
-                <p className="text-xl font-light italic">Week {userData.week} • Growing strong</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-widest text-gray-500">Daily Affirmation</p>
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-sm italic text-[#2c1a22] max-w-xs"
-              >
-                {userData.affirmation}
-              </motion.p>
-            </div>
-          </header>
-
-          {/* Screen Content */}
-          <div className="flex-1 p-6 lg:p-10 overflow-y-auto">
-            {activeScreen === 'home' && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="max-w-5xl mx-auto space-y-8"
-              >
-                {/* Wellness Bento Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                  {/* Hydration Tracker - Blue Wave Card */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white/60 backdrop-blur-xl border border-blue-100 rounded-[2rem] p-8 relative overflow-hidden col-span-1 md:col-span-2 lg:col-span-1"
-                  >
-                    <div className="flex justify-between items-start mb-6">
-                      <div>
-                        <Droplet className="w-9 h-9 text-blue-500 mb-2" />
-                        <h3 className="text-2xl font-light">Hydration Garden</h3>
-                        <p className="text-sm text-gray-600">Keep your body nourished</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-5xl font-light text-blue-600">{userData.waterCount}</span>
-                        <span className="text-sm text-gray-500">/10</span>
-                      </div>
-                    </div>
-
-                    {/* Wave Visualization */}
-                    <div className="relative h-40 bg-gradient-to-t from-blue-400/20 to-transparent rounded-2xl overflow-hidden mb-6">
-                      <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-blue-500 to-blue-300"
-                        animate={{ height: `${(userData.waterCount / 10) * 100}%` }}
-                        transition={{ type: "spring", stiffness: 60, damping: 15 }}
-                      />
-                      <div className="absolute inset-0 flex items-end justify-around pb-4 opacity-30">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                          <motion.div
-                            key={i}
-                            className="w-1.5 bg-white rounded-full"
-                            animate={{ height: [12, 28, 12] }}
-                            transition={{ repeat: Infinity, duration: 2.5 + i * 0.2 }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={updateWater}
-                      disabled={userData.waterCount >= 10}
-                      className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-2xl font-medium transition-all active:scale-95"
-                    >
-                      + Drink a Glass of Water
-                    </button>
-                  </motion.div>
-
-                  {/* Nutrition Bloom */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white/60 backdrop-blur-xl border border-emerald-100 rounded-[2rem] p-8"
-                  >
-                    <Leaf className="w-9 h-9 text-emerald-600 mb-4" />
-                    <h3 className="text-2xl font-light mb-2">Today's Bloom Tip</h3>
-                    <p className="text-lg leading-snug text-gray-700">
-                      {getDailyNutritionTip()}
-                    </p>
-                    <div className="mt-8 pt-6 border-t border-emerald-100 text-xs text-emerald-700 flex items-center gap-2">
-                      <Award className="w-4 h-4" /> Local Nigerian superfood suggestion
-                    </div>
-                  </motion.div>
-
-                  {/* Activity / Rest Card */}
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white/60 backdrop-blur-xl border border-pink-100 rounded-[2rem] p-8 flex flex-col"
-                  >
-                    <Heart className="w-9 h-9 text-pink-500 mb-4" />
-                    <h3 className="text-2xl font-light">Gentle Movement</h3>
-                    <p className="mt-auto text-sm text-gray-600">
-                      Take a slow 10-minute walk in the garden or do prenatal stretches today.
-                    </p>
-                    <button className="mt-6 w-full py-3.5 border border-pink-300 text-pink-600 rounded-2xl hover:bg-pink-50">
-                      Log Gentle Walk
-                    </button>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Voice Triage Screen */}
-            {activeScreen === 'voice' && (
-              <div className="max-w-md mx-auto text-center pt-12">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                >
-                  <div
-                    onClick={() => setIsMicActive(!isMicActive)}
-                    className={`mx-auto w-52 h-52 rounded-full flex items-center justify-center cursor-pointer transition-all border-8 ${isMicActive ? 'border-blue-400 bg-blue-50 scale-110 shadow-2xl' : 'border-pink-200 bg-white'}`}
-                  >
-                    <div className="w-36 h-36 rounded-full bg-gradient-to-br from-pink-500 to-blue-500 flex items-center justify-center">
-                      <Mic className="w-20 h-20 text-white" />
-                    </div>
-                  </div>
-                </motion.div>
-
-                <p className="mt-12 text-3xl font-light italic text-gray-800">
-                  {isMicActive ? "I'm listening to you, dear..." : "Tap to speak with your garden guide"}
-                </p>
-                <p className="text-sm text-gray-500 mt-3">Describe how you're feeling today</p>
-              </div>
-            )}
-
-            {/* Emergency Screen */}
-            {activeScreen === 'emergency' && (
-              <div className="max-w-lg mx-auto pt-8">
-                <div className="bg-gradient-to-br from-rose-600 to-pink-600 text-white rounded-[2.5rem] p-12 text-center">
-                  <AlertTriangle className="w-16 h-16 mx-auto mb-6" />
-                  <h2 className="text-4xl font-light">Help is blooming near you</h2>
-                  <p className="mt-3 opacity-90">Emergency support is ready</p>
-                </div>
-
-                <button className="mt-8 w-full py-7 bg-red-600 hover:bg-red-700 text-white text-xl rounded-3xl font-medium shadow-lg transition">
-                  📞 Call Emergency Services Now
-                </button>
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-2xl border-t border-pink-100 z-50">
-        <div className="flex justify-around items-center py-3 max-w-md mx-auto">
-          {[
-            { id: 'home', icon: Home, label: 'Home' },
-            { id: 'voice', icon: Mic, label: 'Voice' },
-            { id: 'emergency', icon: AlertTriangle, label: 'Help' },
-          ].map((item) => {
-            const Icon = item.icon;
-            const active = activeScreen === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveScreen(item.id as any)}
-                className={`flex flex-col items-center py-2 px-8 rounded-3xl transition-all ${active ? 'text-pink-600 bg-pink-50' : 'text-gray-500'}`}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs mt-1 font-medium">{item.label}</span>
-              </button>
-            );
-          })}
         </div>
+
+        <nav style={{ flex: 1, padding: '16px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              className={screen === item.id ? 'nav-active' : ''}
+              onClick={() => setScreen(item.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: '1.4rem',
+                cursor: 'pointer',
+                border: 'none',
+                background: screen === item.id ? undefined : 'transparent',
+                fontFamily: "'DM Sans',sans-serif",
+                fontSize: 13,
+                fontWeight: 500,
+                color: screen === item.id ? '#BE185D' : '#6B5057',
+                transition: 'all 0.2s',
+                width: '100%',
+                textAlign: 'left',
+              }}
+            >
+              <SvgIcon
+                paths={item.paths}
+                size={20}
+                stroke={screen === item.id ? '#BE185D' : '#6B5057'}
+                strokeWidth={1.8}
+              />
+              <span className="sidebar-label nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </nav>
+
+        {/* User profile */}
+        <div style={{ padding: '16px', borderTop: '1px solid rgba(249,168,212,0.1)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '10px',
+              background: 'rgba(255,255,255,0.6)',
+              borderRadius: '1.4rem',
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: '0.8rem',
+                background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: 13,
+                flexShrink: 0,
+              }}
+            >
+              {(userData.name || 'M')[0].toUpperCase()}
+            </div>
+            <div className="sidebar-label" style={{ overflow: 'hidden' }}>
+              <p style={{ fontWeight: 500, fontSize: 13, color: '#1C1014', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {userData.name}
+              </p>
+              <p style={{ fontSize: 11, color: '#B09099' }}>Week {week}</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+        {/* Topbar */}
+        <header
+          style={{
+            background: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderBottom: '1px solid rgba(249,168,212,0.12)',
+            padding: '16px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: 40,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div>
+              <p style={{ fontSize: 12, color: '#F9A8D4', fontWeight: 500 }}>
+                Good morning, {userData.name?.split(' ')[0] || 'Mama'} 🌸
+              </p>
+              <p style={{ fontSize: 17, fontFamily: "'Playfair Display',serif", fontWeight: 300, fontStyle: 'italic', color: '#1C1014' }}>
+                Week {week} · Growing beautifully
+              </p>
+            </div>
+          </div>
+          <div
+            className="affirmation"
+            style={{ textAlign: 'right', maxWidth: 240, display: 'none' }}
+          >
+            <p style={{ fontSize: 10, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Today&apos;s affirmation
+            </p>
+            <p style={{ fontSize: 12, fontStyle: 'italic', color: '#6B5057', marginTop: 2 }}>
+              You and your baby are blooming beautifully 🌸
+            </p>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div
+          className="content-pad"
+          style={{ flex: 1, padding: '28px 24px 40px', overflowY: 'auto' }}
+        >
+          {/* Home */}
+          {screen === 'home' && (
+            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 24, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>
+                  Your Garden
+                </h2>
+                <p style={{ fontSize: 13, color: '#B09099', marginTop: 2 }}>Everything blooming for you today</p>
+              </div>
+              <div
+                className="bento-grid"
+                style={{ display: 'grid', gap: 20, gridTemplateColumns: '1fr' }}
+              >
+                <PregnancyCard dueDate={userData.dueDate} />
+                <HydrationCard count={userData.waterCount || 0} onAdd={addWater} />
+                <NutritionCard />
+                <ClinicalCard lastVisit={userData.lastVisit} nextAppointment={userData.nextAppointment} />
+
+                {/* Gentle movement */}
+                <div
+                  className="card-hover"
+                  style={{
+                    background: 'rgba(255,255,255,0.72)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(249,168,212,0.2)',
+                    borderRadius: '2.5rem',
+                    padding: '24px',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                  }}
+                >
+                  <SvgIcon paths={ICON_PATHS.heart} size={26} stroke="#F9A8D4" strokeWidth={1.8} />
+                  <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 10, marginBottom: 6 }}>
+                    Gentle Movement
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#6B5057', lineHeight: 1.7 }}>
+                    A slow 10-minute walk or prenatal stretch keeps your body in bloom. Listen to your body, mama.
+                  </p>
+                  <button
+                    style={{
+                      marginTop: 14,
+                      width: '100%',
+                      padding: '11px 20px',
+                      background: 'transparent',
+                      border: '1.5px solid rgba(249,168,212,0.4)',
+                      color: '#BE185D',
+                      borderRadius: '1.4rem',
+                      fontFamily: "'DM Sans',sans-serif",
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    Log Gentle Walk
+                  </button>
+                </div>
+
+                {/* Hospital card */}
+                <div
+                  className="card-hover"
+                  style={{
+                    background: 'rgba(255,255,255,0.72)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(147,197,253,0.25)',
+                    borderRadius: '2.5rem',
+                    padding: '24px',
+                    animation: 'float 4s ease-in-out infinite',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                  }}
+                >
+                  <SvgIcon paths={ICON_PATHS.hospital} size={26} stroke="#60A5FA" strokeWidth={1.8} />
+                  <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 10, marginBottom: 4 }}>
+                    Your Hospital
+                  </h3>
+                  <p style={{ fontSize: 13, color: '#2563EB', fontWeight: 500, marginBottom: 6 }}>{userData.hospital || '—'}</p>
+                  <p style={{ fontSize: 12, color: '#B09099' }}>Keep your antenatal card with you at all times.</p>
+                  <button
+                    style={{
+                      marginTop: 14,
+                      width: '100%',
+                      padding: '11px 20px',
+                      background: 'transparent',
+                      border: '1.5px solid rgba(147,197,253,0.45)',
+                      color: '#2563EB',
+                      borderRadius: '1.4rem',
+                      fontFamily: "'DM Sans',sans-serif",
+                      fontSize: 13,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    📞 Call Hospital
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {screen === 'voice' && <VoiceScreen />}
+          {screen === 'emergency' && <EmergencyScreen userData={userData} />}
+        </div>
+      </main>
+
+      {/* Bottom nav (mobile) */}
+      <nav
+        className="bottom-nav"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderTop: '1px solid rgba(249,168,212,0.15)',
+          padding: '10px 0 18px',
+          zIndex: 50,
+          display: 'none',
+          justifyContent: 'space-around',
+        }}
+      >
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setScreen(item.id)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 20px',
+              borderRadius: '1.4rem',
+              cursor: 'pointer',
+              border: 'none',
+              background: screen === item.id ? 'rgba(249,168,212,0.08)' : 'transparent',
+              fontFamily: "'DM Sans',sans-serif",
+              fontSize: 11,
+              fontWeight: 500,
+              color: screen === item.id ? '#BE185D' : '#B09099',
+              transition: 'all 0.2s',
+            }}
+          >
+            <SvgIcon paths={item.paths} size={22} stroke={screen === item.id ? '#BE185D' : '#B09099'} strokeWidth={1.8} />
+            <span>{item.label}</span>
+            <div
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: '50%',
+                background: screen === item.id ? '#BE185D' : 'transparent',
+                marginTop: 1,
+              }}
+            />
+          </button>
+        ))}
       </nav>
     </div>
   );
-};
+}
 
-export default BloomSanctuary;
+// ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
+export default function MamaAlert() {
+  const [mounted, setMounted] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  // Hydration-safe: only read localStorage after mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('mama_alert_user');
+      if (saved) {
+        const parsed: UserData = JSON.parse(saved);
+        if (parsed.onboardingComplete) setUserData(parsed);
+      }
+    } catch {
+      // localStorage unavailable
+    }
+    setMounted(true);
+  }, []);
+
+  const handleOnboardingComplete = (data: Omit<UserData, 'waterCount' | 'onboardingComplete'>) => {
+    const full: UserData = { ...data, waterCount: 0, onboardingComplete: true };
+    try {
+      localStorage.setItem('mama_alert_user', JSON.stringify(full));
+    } catch {}
+    setUserData(full);
+  };
+
+  const handleUpdate = (patch: Partial<UserData>) => {
+    if (!userData) return;
+    const updated = { ...userData, ...patch };
+    try {
+      localStorage.setItem('mama_alert_user', JSON.stringify(updated));
+    } catch {}
+    setUserData(updated);
+  };
+
+  // Prevent hydration mismatch — render nothing on server pass
+  if (!mounted) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#FFF5F5',
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            border: '2.5px solid #F9A8D4',
+            borderTopColor: 'transparent',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  if (!userData) return <Onboarding onComplete={handleOnboardingComplete} />;
+
+  return <Dashboard userData={userData} onUpdate={handleUpdate} />;
+}
