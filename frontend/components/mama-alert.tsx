@@ -512,10 +512,32 @@ const HospRow = ({ h, mobile }: { h: Hospital; mobile?: boolean }) =>
    Main Component
 ───────────────────────────────────────── */
 export default function MamaAlert() {
+  const [userData, setUserData] = useState<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [screen, setScreen] = useState<Screen>('home');
   const [listening, setListening] = useState(false);
 
   const go = (s: Screen) => { setScreen(s); setListening(false); };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('mama_alert_user');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.onboardingComplete) setUserData(data);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  const handleOnboardingComplete = (data: any) => {
+    localStorage.setItem('mama_alert_user', JSON.stringify(data));
+    setUserData(data);
+  };
+
+  if (!isLoaded) return <div className="min-h-screen bg-[#FFF5F7]" />;
+
+  if (!userData) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
 
   /* ── DESKTOP ── */
   const Desktop = () => (
