@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding'; 
-import TriageResultScreen from './TriageResultScreen';
+import TriageResultScreen from './TriageResult';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface PregnancyInfo {
@@ -38,6 +38,8 @@ const TRIMESTER_COLORS = {
   2: { bg: 'rgba(147,197,253,0.20)', text: '#2563EB', label: 'Second Trimester' },
   3: { bg: 'rgba(249,168,212,0.20)', text: '#BE185D', label: 'Third Trimester' },
 } as const;
+
+const [triageData, setTriageData] = useState<TriageData | null>(null);
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
 function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
