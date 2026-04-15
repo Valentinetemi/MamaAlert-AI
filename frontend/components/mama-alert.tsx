@@ -47,7 +47,8 @@ function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
   const now = new Date();
   const conception = new Date(dueDate);
   conception.setDate(conception.getDate() - 280);
-  const diffDays = Math.max(0, Math.floor((now.getTime() - conception.getTime()) / 86400000));
+  const diffMs = now.getTime() - conception.getTime();
+  const diffDays = diffMs > 0 ? Math.floor(diffMs / 86400000) : 0;
   const week = Math.min(40, Math.floor(diffDays / 7)) as number;
   const day = diffDays % 7;
   const trimester: 1 | 2 | 3 = week <= 12 ? 1 : week <= 28 ? 2 : 3;
