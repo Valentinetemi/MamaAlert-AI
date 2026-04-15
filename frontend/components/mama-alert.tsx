@@ -715,11 +715,16 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
     onUpdate({ waterCount: newCount });
   };
 
-  const navItems: { id: NavId; label: string; paths: string | string[] }[] = [
+  const navItems = [
     { id: 'home', label: 'Home', paths: ICON_PATHS.home },
     { id: 'voice', label: 'Triage', paths: ICON_PATHS.mic },
     { id: 'emergency', label: 'Emergency', paths: ICON_PATHS.alert },
   ];
+
+  const handleNewTriage = () => {
+    setTriageData(null);
+    setScreen('voice');
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans',sans-serif" }}>
