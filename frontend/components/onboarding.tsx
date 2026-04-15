@@ -96,7 +96,7 @@ interface OnboardingProps {
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    lang: 'en' as 'en' | 'yo' | 'pid',
+    lang: 'en' as 'en' | 'yo' | 'ig'| 'ha' | 'pid',
     name: '',
     phone: '',
     dueDate: '',
