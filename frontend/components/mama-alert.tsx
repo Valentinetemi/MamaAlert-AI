@@ -420,7 +420,7 @@ function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextA
 }
 
 // ─── VOICE TRIAGE SCREEN ──────────────────────────────────────────────────────
-function VoiceScreen() {
+function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => void }) {
   const [micActive, setMicActive] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [result, setResult] = useState('');
