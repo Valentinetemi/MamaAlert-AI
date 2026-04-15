@@ -438,7 +438,6 @@ function VoiceScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // FIX: corrected model string — was 'claude-sonnet-4-20250514' (invalid)
           model: 'claude-sonnet-4-5',
           max_tokens: 1000,
           system:
@@ -1060,11 +1059,11 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
             </div>
           )}
 
-{screen === 'voice' && (
-          <VoiceScreen 
-            onTriageComplete={(resultData) => {
-              setTriageData(resultData);
-              setScreen('triage_result');
+              {screen === 'voice' && (
+                  <VoiceScreen 
+                onTriageComplete={(resultData) => {
+                  setTriageData(resultData);
+                  setScreen('triage_result');
             }} 
           />
         )}
