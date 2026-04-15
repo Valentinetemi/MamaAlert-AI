@@ -433,6 +433,7 @@ function VoiceScreen() {
     if (!selected.length) return;
     setLoading(true);
     setResult('');
+
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -446,12 +447,29 @@ function VoiceScreen() {
         }),
       });
       const data = await res.json();
-      setResult(data.content?.[0]?.text || 'Please consult your healthcare provider.');
-    } catch {
-      setResult('Unable to connect. Please call your doctor or visit your hospital immediately.');
-    }
-    setLoading(false);
-  };
+      const aiText = data.content?.[0]?.text || 'Please consult your healthcare provider.';
+
+    // Parse into structured data (you can improve this parsing later)
+    const triageResult = {
+      symptom: selected.join(', '),
+      analysis: aiText,
+      urgency: aiText.toLowerCase().includes('emergency') || aiText.toLowerCase().includes('call now') 
+        ? 'emergency' 
+        : aiText.toLowerCase().includes('see a doctor') ? 'caution' : 'safe',
+      recommendations: aiText.split('. ').filter(s => s.length > 10).slice(0, 4)
+    };
+
+    onTriageComplete(triageResult);
+  } catch {
+    onTriageComplete({
+      symptom: selected.join(', '),
+      analysis: 'Unable to connect. Please call your doctor or visit your hospital immediately.',
+      urgency: 'caution',
+      recommendations: ['Contact your healthcare provider', 'Rest and monitor symptoms']
+    });
+  }
+  setLoading(false);
+};
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
