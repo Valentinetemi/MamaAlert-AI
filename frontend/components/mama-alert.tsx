@@ -41,8 +41,10 @@ const TRIMESTER_COLORS = {
 // ─── UTILS ────────────────────────────────────────────────────────────────────
 function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
   if (!dueDateStr) return { week: 28, day: 3, trimester: 2, daysLeft: 84 };
-  const now = new Date();
   const dueDate = new Date(dueDateStr);
+  // FIX: guard against invalid date string
+  if (isNaN(dueDate.getTime())) return { week: 28, day: 3, trimester: 2, daysLeft: 84 };
+  const now = new Date();
   const conception = new Date(dueDate);
   conception.setDate(conception.getDate() - 280);
   const diffDays = Math.max(0, Math.floor((now.getTime() - conception.getTime()) / 86400000));
@@ -55,6 +57,7 @@ function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
 
 function calcDaysSince(dateStr: string): number {
   if (!dateStr) return 999;
+  // FIX: guard against new Date('') returning Invalid Date → NaN
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return 999;
   return Math.floor((new Date().getTime() - d.getTime()) / 86400000);
@@ -62,9 +65,13 @@ function calcDaysSince(dateStr: string): number {
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+  const d = new Date(dateStr);
+  // FIX: guard against invalid date before calling toLocaleDateString
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// FIX: pin tip to calendar date, not Date.now() — stable within a render and within a day
 function getDailyTip(): string {
   const today = new Date();
   const dayIndex = today.getFullYear() * 1000 + today.getMonth() * 31 + today.getDate();
@@ -319,7 +326,12 @@ function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextA
   const daysSince = calcDaysSince(lastVisit);
   const isOverdue = daysSince > 28;
   const daysUntilNext = nextAppointment
-    ? Math.floor((new Date(nextAppointment).getTime() - new Date().getTime()) / 86400000)
+    ? (() => {
+        const d = new Date(nextAppointment);
+        // FIX: guard invalid date before computing difference
+        if (isNaN(d.getTime())) return null;
+        return Math.floor((d.getTime() - new Date().getTime()) / 86400000);
+      })()
     : null;
 
   return (
@@ -371,7 +383,11 @@ function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextA
           <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Last Visit</p>
           <p style={{ fontSize: 14, fontWeight: 500, color: '#1C1014', marginTop: 3 }}>{formatDate(lastVisit)}</p>
           <p style={{ fontSize: 12, color: isOverdue ? '#D97706' : '#059669', marginTop: 2 }}>
-            {isOverdue ? `⚠️ ${daysSince} days ago — schedule soon` : `✓ ${daysSince} days ago — on track`}
+            {lastVisit
+              ? isOverdue
+                ? `⚠️ ${daysSince} days ago — schedule soon`
+                : `✓ ${daysSince} days ago — on track`
+              : 'No visit logged yet'}
           </p>
         </div>
 
@@ -418,7 +434,8 @@ function VoiceScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          // FIX: corrected model string — was 'claude-sonnet-4-20250514' (invalid)
+          model: 'claude-sonnet-4-5',
           max_tokens: 1000,
           system:
             'You are a compassionate maternal health triage assistant for Nigerian pregnant women. Given symptoms, give a brief (2–3 sentences) gentle assessment. If urgent, advise calling emergency services immediately. If moderate, advise seeing a doctor within 24 hours. If mild, suggest home care and monitoring. End with a clear action: "Call emergency now", "See a doctor within 24 hours", or "Monitor at home and rest". Be warm, clear, and supportive.',
@@ -1100,7 +1117,6 @@ export default function MamaAlert() {
   const [mounted, setMounted] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
 
-  // Hydration-safe: only read localStorage after mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem('mama_alert_user');
@@ -1109,7 +1125,7 @@ export default function MamaAlert() {
         if (parsed.onboardingComplete) setUserData(parsed);
       }
     } catch {
-      // localStorage unavailable
+      // localStorage unavailable — user will go through onboarding fresh
     }
     setMounted(true);
   }, []);
@@ -1131,7 +1147,6 @@ export default function MamaAlert() {
     setUserData(updated);
   };
 
-  // Prevent hydration mismatch — render nothing on server pass
   if (!mounted) {
     return (
       <div
