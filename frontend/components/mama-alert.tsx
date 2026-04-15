@@ -449,7 +449,6 @@ function VoiceScreen() {
       const data = await res.json();
       const aiText = data.content?.[0]?.text || 'Please consult your healthcare provider.';
 
-    // Parse into structured data (you can improve this parsing later)
     const triageResult = {
       symptom: selected.join(', '),
       analysis: aiText,
