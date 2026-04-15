@@ -706,7 +706,8 @@ function EmergencyScreen({ userData }: { userData: UserData }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
-  const [screen, setScreen] = useState<'home' | 'voice' | 'emergency'>('home');
+  const [screen, setScreen] = useState<'home' | 'voice' | 'emergency' | 'triage_result'>('home');
+  const [triageData, setTriageData] = useState<any>(null);
   const { week } = calcPregnancyInfo(userData.dueDate);
 
   const addWater = () => {
