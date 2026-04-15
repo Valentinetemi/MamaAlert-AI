@@ -727,6 +727,8 @@ function EmergencyScreen({ userData }: { userData: UserData }) {
 function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
   const [screen, setScreen] = useState<'home' | 'voice' | 'emergency' | 'triage_result'>('home');
   const [triageData, setTriageData] = useState<any>(null);
+
+  // ✅ Important calculations
   const { week } = calcPregnancyInfo(userData.dueDate);
 
   const addWater = () => {
@@ -734,16 +736,16 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
     onUpdate({ waterCount: newCount });
   };
 
+  const handleNewTriage = () => {
+    setTriageData(null);
+    setScreen('voice');
+  };
+
   const navItems = [
     { id: 'home', label: 'Home', paths: ICON_PATHS.home },
     { id: 'voice', label: 'Triage', paths: ICON_PATHS.mic },
     { id: 'emergency', label: 'Emergency', paths: ICON_PATHS.alert },
   ];
-
-  const handleNewTriage = () => {
-    setTriageData(null);
-    setScreen('voice');
-  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'DM Sans',sans-serif" }}>
@@ -757,6 +759,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
         @keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(249,168,212,0.4)} 50%{box-shadow:0 0 0 16px rgba(249,168,212,0)} }
         .card-hover:hover { transform:translateY(-4px); box-shadow:0 20px 60px rgba(252,165,165,0.12); }
         .nav-active { background:rgba(255,255,255,0.9); box-shadow:0 4px 20px rgba(252,165,165,0.18); color:#BE185D; }
+        
         @media(max-width:767px){
           .sidebar { display:none !important; }
           .bottom-nav { display:flex !important; }
@@ -777,87 +780,27 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
       `}</style>
 
       {/* Decorative blobs */}
-      <div
-        style={{
-          position: 'fixed',
-          width: 480,
-          height: 480,
-          borderRadius: '50%',
-          background: 'rgba(249,168,212,0.08)',
-          filter: 'blur(80px)',
-          top: -100,
-          right: -80,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          width: 380,
-          height: 380,
-          borderRadius: '50%',
-          background: 'rgba(147,197,253,0.08)',
-          filter: 'blur(80px)',
-          bottom: -60,
-          left: -60,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
+      <div style={{ position: 'fixed', width: 480, height: 480, borderRadius: '50%', background: 'rgba(249,168,212,0.08)', filter: 'blur(80px)', top: -100, right: -80, pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', width: 380, height: 380, borderRadius: '50%', background: 'rgba(147,197,253,0.08)', filter: 'blur(80px)', bottom: -60, left: -60, pointerEvents: 'none', zIndex: 0 }} />
 
       {/* Sidebar */}
-      <aside
-        className="sidebar"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'rgba(255,255,255,0.88)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderRight: '1px solid rgba(249,168,212,0.15)',
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          zIndex: 50,
-          transition: 'width 0.3s ease',
-        }}
-      >
-        <div
-          style={{
-            padding: '24px 16px 16px',
-            borderBottom: '1px solid rgba(249,168,212,0.12)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: '1rem',
-              background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+      <aside className="sidebar" style={{
+        display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(24px)',
+        borderRight: '1px solid rgba(249,168,212,0.15)', position: 'sticky', top: 0, height: '100vh',
+        overflowY: 'auto', zIndex: 50, transition: 'width 0.3s ease'
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '24px 16px 16px', borderBottom: '1px solid rgba(249,168,212,0.12)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '1rem', background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <SvgIcon paths={ICON_PATHS.flower} size={24} stroke="#fff" strokeWidth={2} />
           </div>
           <div className="sidebar-label" style={{ textAlign: 'center', marginTop: 10 }}>
-            <h1 style={{ fontSize: 20, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>
-              MamaAlert
-            </h1>
-            <p style={{ fontSize: 10, color: '#F9A8D4', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
-              Garden Sanctuary
-            </p>
+            <h1 style={{ fontSize: 20, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>MamaAlert</h1>
+            <p style={{ fontSize: 10, color: '#F9A8D4', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Garden Sanctuary</p>
           </div>
         </div>
 
+        {/* Navigation */}
         <nav style={{ flex: 1, padding: '16px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {navItems.map((item) => (
             <button
@@ -865,29 +808,13 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
               className={screen === item.id ? 'nav-active' : ''}
               onClick={() => setScreen(item.id)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: '1.4rem',
-                cursor: 'pointer',
-                border: 'none',
-                background: screen === item.id ? undefined : 'transparent',
-                fontFamily: "'DM Sans',sans-serif",
-                fontSize: 13,
-                fontWeight: 500,
-                color: screen === item.id ? '#BE185D' : '#6B5057',
-                transition: 'all 0.2s',
-                width: '100%',
-                textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: '1.4rem',
+                cursor: 'pointer', border: 'none', background: screen === item.id ? undefined : 'transparent',
+                fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 500,
+                color: screen === item.id ? '#BE185D' : '#6B5057', transition: 'all 0.2s', width: '100%', textAlign: 'left'
               }}
             >
-              <SvgIcon
-                paths={item.paths}
-                size={20}
-                stroke={screen === item.id ? '#BE185D' : '#6B5057'}
-                strokeWidth={1.8}
-              />
+              <SvgIcon paths={item.paths} size={20} stroke={screen === item.id ? '#BE185D' : '#6B5057'} strokeWidth={1.8} />
               <span className="sidebar-label nav-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}>
                 {item.label}
               </span>
@@ -895,109 +822,54 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
           ))}
         </nav>
 
-        {/* User profile */}
+        {/* User Profile */}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(249,168,212,0.1)' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px',
-              background: 'rgba(255,255,255,0.6)',
-              borderRadius: '1.4rem',
-            }}
-          >
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: '0.8rem',
-                background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: 13,
-                flexShrink: 0,
-              }}
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px', background: 'rgba(255,255,255,0.6)', borderRadius: '1.4rem' }}>
+            <div style={{ width: 34, height: 34, borderRadius: '0.8rem', background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: 13 }}>
               {(userData.name || 'M')[0].toUpperCase()}
             </div>
             <div className="sidebar-label" style={{ overflow: 'hidden' }}>
-              <p style={{ fontWeight: 500, fontSize: 13, color: '#1C1014', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {userData.name}
-              </p>
+              <p style={{ fontWeight: 500, fontSize: 13, color: '#1C1014' }}>{userData.name}</p>
               <p style={{ fontSize: 11, color: '#B09099' }}>Week {week}</p>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Content */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         {/* Topbar */}
-        <header
-          style={{
-            background: 'rgba(255,255,255,0.85)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            borderBottom: '1px solid rgba(249,168,212,0.12)',
-            padding: '16px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            position: 'sticky',
-            top: 0,
-            zIndex: 40,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div>
-              <p style={{ fontSize: 12, color: '#F9A8D4', fontWeight: 500 }}>
-                Good morning, {userData.name?.split(' ')[0] || 'Mama'} 🌸
-              </p>
-              <p style={{ fontSize: 17, fontFamily: "'Playfair Display',serif", fontWeight: 300, fontStyle: 'italic', color: '#1C1014' }}>
-                Week {week} · Growing beautifully
-              </p>
-            </div>
-          </div>
-          <div
-            className="affirmation"
-            style={{ textAlign: 'right', maxWidth: 240, display: 'none' }}
-          >
-            <p style={{ fontSize: 10, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Today&apos;s affirmation
+        <header style={{
+          background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(24px)', borderBottom: '1px solid rgba(249,168,212,0.12)',
+          padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 40
+        }}>
+          <div>
+            <p style={{ fontSize: 12, color: '#F9A8D4', fontWeight: 500 }}>
+              Good morning, {userData.name?.split(' ')[0] || 'Mama'} 🌸
             </p>
-            <p style={{ fontSize: 12, fontStyle: 'italic', color: '#6B5057', marginTop: 2 }}>
-              You and your baby are blooming beautifully 🌸
+            <p style={{ fontSize: 17, fontFamily: "'Playfair Display',serif", fontWeight: 300, fontStyle: 'italic', color: '#1C1014' }}>
+              Week {week} · Growing beautifully
             </p>
           </div>
         </header>
 
-        {/* Content */}
-        <div
-          className="content-pad"
-          style={{ flex: 1, padding: '28px 24px 40px', overflowY: 'auto' }}
-        >
-          {/* Home */}
+        {/* Page Content */}
+        <div className="content-pad" style={{ flex: 1, padding: '28px 24px 40px', overflowY: 'auto' }}>
           {screen === 'home' && (
             <div style={{ maxWidth: 1100, margin: '0 auto' }}>
               <div style={{ marginBottom: 24 }}>
-                <h2 style={{ fontSize: 24, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>
-                  Your Garden
-                </h2>
+                <h2 style={{ fontSize: 24, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>Your Garden</h2>
                 <p style={{ fontSize: 13, color: '#B09099', marginTop: 2 }}>Everything blooming for you today</p>
               </div>
-              <div
-                className="bento-grid"
-                style={{ display: 'grid', gap: 20, gridTemplateColumns: '1fr' }}
-              >
-                
+              <div className="bento-grid" style={{ display: 'grid', gap: 20, gridTemplateColumns: '1fr' }}>
                 <PregnancyCard dueDate={userData.dueDate} />
                 <HydrationCard count={userData.waterCount || 0} onAdd={addWater} />
                 <NutritionCard />
                 <ClinicalCard lastVisit={userData.lastVisit} nextAppointment={userData.nextAppointment} />
+
+
+
+
 
                 {/* Gentle movement */}
                 <div
