@@ -144,9 +144,12 @@ function PregnancyCard({ dueDate }: { dueDate: string }) {
             strokeWidth="7"
             strokeLinecap="round"
             strokeDasharray={circ}
-            strokeDashoffset={offset}
+            style={{ 
+              strokeDashoffset: offset, // Move this to inline style for smoother animation
+              transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+              filter: 'drop-shadow(0 0 4px rgba(249,168,212,0.3))' // The "Premium" Glow
+            }}
             transform="rotate(-90 54 54)"
-            style={{ transition: 'stroke-dashoffset 1.2s ease' }}
           />
           <text
             x="54"
