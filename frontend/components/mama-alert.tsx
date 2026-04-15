@@ -42,7 +42,7 @@ const TRIMESTER_COLORS = {
 function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
   if (!dueDateStr) return { week: 28, day: 3, trimester: 2, daysLeft: 84 };
   const dueDate = new Date(dueDateStr);
-  // FIX: guard against invalid date string
+  //  guard against invalid date string
   if (isNaN(dueDate.getTime())) return { week: 28, day: 3, trimester: 2, daysLeft: 84 };
   const now = new Date();
   const conception = new Date(dueDate);
@@ -58,7 +58,7 @@ function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
 
 function calcDaysSince(dateStr: string): number {
   if (!dateStr) return 999;
-  // FIX: guard against new Date('') returning Invalid Date → NaN
+  //  guard against new Date('') returning Invalid Date
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return 999;
   return Math.floor((new Date().getTime() - d.getTime()) / 86400000);
@@ -67,12 +67,12 @@ function calcDaysSince(dateStr: string): number {
 function formatDate(dateStr: string): string {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
-  // FIX: guard against invalid date before calling toLocaleDateString
+  // guard against invalid date before calling toLocaleDateString
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// FIX: pin tip to calendar date, not Date.now() — stable within a render and within a day
+// pin tip to calendar date, not Date.now(), stable within a render and within a day
 function getDailyTip(): string {
   const today = new Date();
   const dayIndex = today.getFullYear() * 1000 + today.getMonth() * 31 + today.getDate();
