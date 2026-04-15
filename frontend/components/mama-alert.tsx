@@ -145,9 +145,9 @@ function PregnancyCard({ dueDate }: { dueDate: string }) {
             strokeLinecap="round"
             strokeDasharray={circ}
             style={{ 
-              strokeDashoffset: offset, // Move this to inline style for smoother animation
+              strokeDashoffset: offset,
               transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
-              filter: 'drop-shadow(0 0 4px rgba(249,168,212,0.3))' // The "Premium" Glow
+              filter: 'drop-shadow(0 0 4px rgba(249,168,212,0.3))'
             }}
             transform="rotate(-90 54 54)"
           />
@@ -175,7 +175,7 @@ function PregnancyCard({ dueDate }: { dueDate: string }) {
           <p style={{ fontSize: 11, color: tc.text, marginTop: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {tc.label}
           </p>
-          <p style={{ fontSize: 12, color: '#B09099', marginTop: 4 }}>{daysLeft} days to go 💕</p>
+          <p style={{ fontSize: 12, color: '#B09099', marginTop: 4 }}>{daysLeft} days to go </p>
         </div>
       </div>
     </div>
