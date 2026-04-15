@@ -37,6 +37,8 @@ export const HOSPITALS = [
 export const LANGS = [
   { id: 'en' as const, label: 'English', sub: 'Default language' },
   { id: 'yo' as const, label: 'Yorùbá', sub: 'Yoruba language' },
+  { id: 'ig' as const, label: 'Igbo', sub: 'Igbo language' },
+  { id: 'ha' as const, label: 'Hausa', sub: 'Hausa language' },
   { id: 'pid' as const, label: 'Nigerian Pidgin', sub: 'Pidgin English' },
 ];
 
