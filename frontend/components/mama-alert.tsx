@@ -55,7 +55,9 @@ function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
 
 function calcDaysSince(dateStr: string): number {
   if (!dateStr) return 999;
-  return Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 86400000);
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 999;
+  return Math.floor((new Date().getTime() - d.getTime()) / 86400000);
 }
 
 function formatDate(dateStr: string): string {
