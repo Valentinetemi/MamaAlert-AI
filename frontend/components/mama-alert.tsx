@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding';
+import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding'; 
+import TriageResultScreen from './TriageResultScreen';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface PregnancyInfo {
