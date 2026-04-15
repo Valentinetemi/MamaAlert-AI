@@ -974,6 +974,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
                 className="bento-grid"
                 style={{ display: 'grid', gap: 20, gridTemplateColumns: '1fr' }}
               >
+                
                 <PregnancyCard dueDate={userData.dueDate} />
                 <HydrationCard count={userData.waterCount || 0} onAdd={addWater} />
                 <NutritionCard />
@@ -1059,10 +1060,26 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
             </div>
           )}
 
-          {screen === 'voice' && <VoiceScreen />}
-          {screen === 'emergency' && <EmergencyScreen userData={userData} />}
-        </div>
-      </main>
+{screen === 'voice' && (
+          <VoiceScreen 
+            onTriageComplete={(resultData) => {
+              setTriageData(resultData);
+              setScreen('triage_result');
+            }} 
+          />
+        )}
+
+        {screen === 'emergency' && <EmergencyScreen userData={userData} />}
+
+        {screen === 'triage_result' && triageData && (
+          <TriageResultScreen
+            triageData={triageData}
+            userData={userData}
+            onNewTriage={handleNewTriage}
+            onBack={() => setScreen('voice')}
+          />
+        )}
+      </div>
 
       {/* Bottom nav (mobile) */}
       <nav
