@@ -715,7 +715,6 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
     onUpdate({ waterCount: newCount });
   };
 
-  type NavId = 'home' | 'voice' | 'emergency';
   const navItems: { id: NavId; label: string; paths: string | string[] }[] = [
     { id: 'home', label: 'Home', paths: ICON_PATHS.home },
     { id: 'voice', label: 'Triage', paths: ICON_PATHS.mic },
