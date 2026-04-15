@@ -39,10 +39,8 @@ const TRIMESTER_COLORS = {
   3: { bg: 'rgba(249,168,212,0.20)', text: '#BE185D', label: 'Third Trimester' },
 } as const;
 
-const [triageData, setTriageData] = useState<TriageData | null>(null);
-
 // ─── UTILS ────────────────────────────────────────────────────────────────────
-function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
+export function calcPregnancyInfo(dueDateStr: string): PregnancyInfo {
   if (!dueDateStr) return { week: 28, day: 3, trimester: 2, daysLeft: 84 };
   const dueDate = new Date(dueDateStr);
   //  guard against invalid date string
@@ -458,7 +456,7 @@ function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => v
       urgency: aiText.toLowerCase().includes('emergency') || aiText.toLowerCase().includes('call now') 
         ? 'emergency' 
         : aiText.toLowerCase().includes('see a doctor') ? 'caution' : 'safe',
-      recommendations: aiText.split('. ').filter(s => s.length > 10).slice(0, 4)
+      recommendations: aiText.split('. ').filter((s: string) => s.length > 10).slice(0, 4)
     };
 
     onTriageComplete(triageResult);
@@ -725,8 +723,10 @@ function EmergencyScreen({ userData }: { userData: UserData }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
+type ScreenType = 'home' | 'voice' | 'emergency' | 'triage_result';
+
 function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
-  const [screen, setScreen] = useState<'home' | 'voice' | 'emergency' | 'triage_result'>('home');
+  const [screen, setScreen] = useState<ScreenType>('home');
   const [triageData, setTriageData] = useState<any>(null);
 
   // ✅ Important calculations
@@ -742,7 +742,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
     setScreen('voice');
   };
 
-  const navItems = [
+  const navItems: { id: ScreenType; label: string; paths: string[] }[] = [
     { id: 'home', label: 'Home', paths: ICON_PATHS.home },
     { id: 'voice', label: 'Triage', paths: ICON_PATHS.mic },
     { id: 'emergency', label: 'Emergency', paths: ICON_PATHS.alert },
@@ -968,6 +968,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
           />
         )}
       </div>
+    </main>
 
       {/* Bottom nav (mobile) */}
       <nav

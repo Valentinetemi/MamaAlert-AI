@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 export interface UserData {
   name: string;
   phone: string;
-  lang: 'en' | 'yo' | 'pid';
+  lang: 'en' | 'yo' | 'pid' | 'ig' | 'ha';
   dueDate: string;
   hospital: string;
   lastVisit: string;
@@ -108,7 +108,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const canNext = [
-    form.lang !== '',
+    form.lang !== undefined && form.lang !== null,
     form.name.trim().length > 1 && form.phone.trim().length > 7,
     form.dueDate !== '',
   ][step];

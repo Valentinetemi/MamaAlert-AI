@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, ShieldAlert, HeartHandshake, Phone, ArrowLeft } from 'lucide-react';
 import { UserData } from './onboarding';
-import { calcPregnancyInfo } from './page';
+import { calcPregnancyInfo } from './mama-alert';
 
 interface TriageData {
   symptom: string;
