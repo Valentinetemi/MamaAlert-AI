@@ -724,6 +724,7 @@ function EmergencyScreen({ userData }: { userData: UserData }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
+
 function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
   const [screen, setScreen] = useState<'home' | 'voice' | 'emergency' | 'triage_result'>('home');
   const [triageData, setTriageData] = useState<any>(null);
@@ -866,10 +867,6 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
                 <HydrationCard count={userData.waterCount || 0} onAdd={addWater} />
                 <NutritionCard />
                 <ClinicalCard lastVisit={userData.lastVisit} nextAppointment={userData.nextAppointment} />
-
-
-
-
 
                 {/* Gentle movement */}
                 <div
