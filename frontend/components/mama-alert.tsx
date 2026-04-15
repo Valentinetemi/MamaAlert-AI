@@ -66,7 +66,9 @@ function formatDate(dateStr: string): string {
 }
 
 function getDailyTip(): string {
-  return NUTRITION_TIPS[Math.floor(Date.now() / 86400000) % NUTRITION_TIPS.length];
+  const today = new Date();
+  const dayIndex = today.getFullYear() * 1000 + today.getMonth() * 31 + today.getDate();
+  return NUTRITION_TIPS[dayIndex % NUTRITION_TIPS.length];
 }
 
 // ─── PREGNANCY CARD ───────────────────────────────────────────────────────────
