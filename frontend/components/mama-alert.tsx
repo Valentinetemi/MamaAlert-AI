@@ -557,7 +557,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       setLoading(false);
     }
   };
-  
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Mic Card */}
@@ -648,27 +648,23 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
           Your message (click to edit)
         </label>
         <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Speak or type your symptoms here..."
-          style={{
-            width: '100%',
-            height: 100,
-            padding: '12px',
-            borderRadius: '1.2rem',
-            border: '1.5px solid rgba(252,165,165,0.2)',
-            background: 'rgba(255,255,255,0.5)',
-            fontSize: 14,
-            fontFamily: "'DM Sans', sans-serif",
-            resize: 'none',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-          }}
-          onFocus={(e) => (e.target.style.borderColor = '#F9A8D4')}
-          onBlur={(e) => (e.target.style.borderColor = 'rgba(252,165,165,0.2)')}
-        />
-      </div>
-
+  value={transcript + (interimText ? ' ' + interimText : '')}
+  onChange={(e) => setTranscript(e.target.value)}
+  placeholder="Speak or type your symptoms here..."
+  style={{
+    width: '100%',
+    height: 100,
+    padding: '12px',
+    borderRadius: '1.2rem',
+    border: '1.5px solid rgba(252,165,165,0.2)',
+    background: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    fontFamily: "'DM Sans', sans-serif",
+    resize: 'none',
+    outline: 'none',
+    color: interimText ? '#B09099' : '#1C1014', // grey while interim, dark when final
+  }}
+/>
       {/* Symptom chips */}
       <div
         style={{
