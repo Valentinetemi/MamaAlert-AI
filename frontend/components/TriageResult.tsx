@@ -58,7 +58,7 @@ const urgencyConfig = {
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 28 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
+  transition: { duration: 0.55, ease: 'easeOut', delay },
 });
 
 // ── Decorative SVG blob ──────────────────────────────────────────────────────
@@ -374,7 +374,7 @@ export default function TriageResultScreen({ triageData, userData, onNewTriage, 
                 key={i}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.32 + i * 0.07, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ delay: 0.32 + i * 0.07, duration: 0.45, ease: 'easeOut' }}
                 style={{
                   display: 'flex', gap: 16, alignItems: 'flex-start',
                   padding: '16px 20px', borderRadius: 18,
@@ -411,7 +411,7 @@ export default function TriageResultScreen({ triageData, userData, onNewTriage, 
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.4, duration: 0.5, ease: 'easeOut' }}
             style={{
               borderRadius: 32,
               overflow: 'hidden',

@@ -3,6 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding'; 
 import TriageResultScreen from './TriageResult';
+import translationsData from '../translation.json';
+
+const translations = translationsData as Record<string, Record<string, string>>;
+
+function useTranslation(lang: string) {
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+  return { t };
+}
+
+// ─── SPEECH API ───────────────────────────────────────────────────────────────
+const SpeechRecognition = typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 interface PregnancyInfo {
@@ -81,7 +94,7 @@ function getDailyTip(): string {
 }
 
 // ─── PREGNANCY CARD ───────────────────────────────────────────────────────────
-function PregnancyCard({ dueDate }: { dueDate: string }) {
+function PregnancyCard({ dueDate, t }: { dueDate: string; t: (k: string) => string }) {
   const { week, day, trimester, daysLeft } = calcPregnancyInfo(dueDate);
   const tc = TRIMESTER_COLORS[trimester];
   const pct = Math.min(100, (week / 40) * 100);
@@ -106,7 +119,7 @@ function PregnancyCard({ dueDate }: { dueDate: string }) {
         <div>
           <SvgIcon paths={ICON_PATHS.flower} size={26} stroke="#F9A8D4" strokeWidth={1.8} />
           <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8 }}>
-            Your Journey
+            {t('journey')}
           </h3>
         </div>
         <span
@@ -164,13 +177,13 @@ function PregnancyCard({ dueDate }: { dueDate: string }) {
             {week}
           </text>
           <text x="54" y="64" textAnchor="middle" fontSize="9" fontFamily="DM Sans, sans-serif" fill="#B09099">
-            of 40 wks
+            {t('weeks_count')}
           </text>
         </svg>
 
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 22, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014', lineHeight: 1.2 }}>
-            Week {week}
+            {t('weeks_count')} {week}
           </p>
           <p style={{ fontSize: 13, color: '#B09099', marginTop: 2 }}>Day {day} of 7</p>
           <p style={{ fontSize: 11, color: tc.text, marginTop: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -184,7 +197,7 @@ function PregnancyCard({ dueDate }: { dueDate: string }) {
 }
 
 // ─── HYDRATION CARD ───────────────────────────────────────────────────────────
-function HydrationCard({ count, onAdd }: { count: number; onAdd: () => void }) {
+function HydrationCard({ count, onAdd, t }: { count: number; onAdd: () => void; t: (k: string) => string }) {
   const pct = (count / 10) * 100;
   return (
     <div
@@ -202,7 +215,7 @@ function HydrationCard({ count, onAdd }: { count: number; onAdd: () => void }) {
         <div>
           <SvgIcon paths={ICON_PATHS.droplet} size={26} stroke="#60A5FA" strokeWidth={1.8} />
           <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8 }}>
-            Hydration
+            {t('water_tracker')}
           </h3>
           <p style={{ fontSize: 12, color: '#B09099' }}>Stay watered, mama</p>
         </div>
@@ -270,14 +283,14 @@ function HydrationCard({ count, onAdd }: { count: number; onAdd: () => void }) {
           transition: 'all 0.2s',
         }}
       >
-        + Drink a glass
+        + {t('drink_btn')}
       </button>
     </div>
   );
 }
 
 // ─── NUTRITION CARD ───────────────────────────────────────────────────────────
-function NutritionCard() {
+function NutritionCard({ t }: { t: (k: string) => string }) {
   const todayTip = getDailyTip();
   const others = NUTRITION_TIPS.filter((t) => t !== todayTip).slice(0, 3);
 
@@ -295,7 +308,7 @@ function NutritionCard() {
     >
       <SvgIcon paths={ICON_PATHS.leaf} size={26} stroke="#059669" strokeWidth={1.8} />
       <h3 style={{ fontSize: 16, fontFamily: "'Playfair Display',serif", fontWeight: 300, marginTop: 8, marginBottom: 4 }}>
-        Bloom Nutrition
+        {t('nutrition')}
       </h3>
       <p style={{ fontSize: 12, color: '#B09099', marginBottom: 14 }}>Local superfoods for you &amp; baby</p>
 
@@ -327,7 +340,7 @@ function NutritionCard() {
 }
 
 // ─── CLINICAL CARD ────────────────────────────────────────────────────────────
-function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextAppointment: string }) {
+function ClinicalCard({ lastVisit, nextAppointment, t }: { lastVisit: string; nextAppointment: string; t: (k: string) => string }) {
   const daysSince = calcDaysSince(lastVisit);
   const isOverdue = daysSince > 28;
   const daysUntilNext = nextAppointment
@@ -385,7 +398,7 @@ function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextA
             border: '1px solid rgba(249,168,212,0.15)',
           }}
         >
-          <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Last Visit</p>
+          <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('last_visit')}</p>
           <p style={{ fontSize: 14, fontWeight: 500, color: '#1C1014', marginTop: 3 }}>{formatDate(lastVisit)}</p>
           <p style={{ fontSize: 12, color: isOverdue ? '#D97706' : '#059669', marginTop: 2 }}>
             {lastVisit
@@ -405,7 +418,7 @@ function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextA
           }}
         >
           <p style={{ fontSize: 11, color: '#B09099', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Next Appointment
+            {t('next_visit')}
           </p>
           <p style={{ fontSize: 14, fontWeight: 500, color: '#1C1014', marginTop: 3 }}>{formatDate(nextAppointment)}</p>
           {daysUntilNext !== null && daysUntilNext >= 0 && (
@@ -421,59 +434,106 @@ function ClinicalCard({ lastVisit, nextAppointment }: { lastVisit: string; nextA
 }
 
 // ─── VOICE TRIAGE SCREEN ──────────────────────────────────────────────────────
-function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => void }) {
-  const [micActive, setMicActive] = useState(false);
+function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: any) => void; t: (k: string) => string; lang: string }) {
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
-  const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
-  const toggle = (s: string) =>
+  useEffect(() => {
+    if (SpeechRecognition) {
+      const recog = new SpeechRecognition();
+      recog.continuous = true;
+      recog.interimResults = true;
+      recog.lang = lang === 'en' ? 'en-US' : lang === 'yo' ? 'yo-NG' : lang === 'ig' ? 'ig-NG' : lang === 'ha' ? 'ha-NG' : 'en-US';
+
+      recog.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          setTranscript(prev => prev + ' ' + finalTranscript);
+        }
+        setIsProcessing(!!interimTranscript);
+      };
+
+      recog.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+      };
+
+      recog.onend = () => {
+        setIsListening(false);
+      };
+
+      setRecognition(recog);
+    }
+  }, [lang]);
+
+  const toggleListening = () => {
+    if (!recognition) {
+      alert('Speech recognition is not supported in this browser.');
+      return;
+    }
+
+    if (isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+      setIsListening(true);
+    }
+  };
+
+  const toggleSymptom = (s: string) =>
     setSelected((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
 
-  const runTriage = async () => {
-    if (!selected.length) return;
-    setLoading(true);
-    setResult('');
+  const handleSend = async () => {
+    const finalInput = transcript.trim() || selected.join(', ');
+    if (!finalInput) return;
 
+    setLoading(true);
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      // Sending to FastAPI backend as requested
+      const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 1000,
-          system:
-            'You are a compassionate maternal health triage assistant for Nigerian pregnant women. Given symptoms, give a brief (2–3 sentences) gentle assessment. If urgent, advise calling emergency services immediately. If moderate, advise seeing a doctor within 24 hours. If mild, suggest home care and monitoring. End with a clear action: "Call emergency now", "See a doctor within 24 hours", or "Monitor at home and rest". Be warm, clear, and supportive.',
-          messages: [{ role: 'user', content: `I am pregnant and experiencing: ${selected.join(', ')}. Please advise.` }],
+          text: finalInput,
+          lang: lang
         }),
       });
-      const data = await res.json();
-      const aiText = data.content?.[0]?.text || 'Please consult your healthcare provider.';
-
-    const triageResult = {
-      symptom: selected.join(', '),
-      analysis: aiText,
-      urgency: aiText.toLowerCase().includes('emergency') || aiText.toLowerCase().includes('call now') 
-        ? 'emergency' 
-        : aiText.toLowerCase().includes('see a doctor') ? 'caution' : 'safe',
-      recommendations: aiText.split('. ').filter((s: string) => s.length > 10).slice(0, 4)
-    };
-
-    onTriageComplete(triageResult);
-  } catch {
-    onTriageComplete({
-      symptom: selected.join(', '),
-      analysis: 'Unable to connect. Please call your doctor or visit your hospital immediately.',
-      urgency: 'caution',
-      recommendations: ['Contact your healthcare provider', 'Rest and monitor symptoms']
-    });
-  }
-  setLoading(false);
-};
+      
+      if (!res.ok) throw new Error('Backend error');
+      
+      const triageResult = await res.json();
+      onTriageComplete(triageResult);
+    } catch (err) {
+      console.error(err);
+      // Fallback if backend is not ready
+      onTriageComplete({
+        symptom: finalInput,
+        analysis: 'Unable to connect to triage server. Please call your doctor or visit your hospital immediately.',
+        urgency: 'caution',
+        recommendations: ['Contact your healthcare provider', 'Rest and monitor symptoms']
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
-      {/* Mic */}
+      {/* Mic Card */}
       <div
         style={{
           background: 'rgba(255,255,255,0.72)',
@@ -490,8 +550,9 @@ function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => v
           Voice Triage
         </h2>
         <p style={{ fontSize: 13, color: '#B09099', marginBottom: 28 }}>Tell your garden guide how you feel</p>
+        
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 170, position: 'relative' }}>
-          {micActive && (
+          {isListening && (
             <>
               <div
                 style={{
@@ -516,20 +577,20 @@ function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => v
             </>
           )}
           <button
-            onClick={() => setMicActive((p) => !p)}
+            onClick={toggleListening}
             style={{
               width: 130,
               height: 130,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+              background: isListening ? 'linear-gradient(135deg,#EF4444,#F9A8D4)' : 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'transform 0.3s',
-              transform: micActive ? 'scale(1.08)' : 'scale(1)',
-              animation: micActive ? 'micPulse 1.5s ease-in-out infinite' : 'none',
+              transition: 'all 0.3s',
+              transform: isListening ? 'scale(1.08)' : 'scale(1)',
+              animation: isListening ? 'micPulse 1.5s ease-in-out infinite' : 'none',
               position: 'relative',
               zIndex: 1,
             }}
@@ -537,9 +598,48 @@ function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => v
             <SvgIcon paths={ICON_PATHS.mic} size={48} stroke="#fff" strokeWidth={1.5} />
           </button>
         </div>
-        <p style={{ fontSize: 15, fontStyle: 'italic', color: '#6B5057', marginTop: 8 }}>
-          {micActive ? "I'm listening, dear mama…" : 'Tap to speak'}
+        <p style={{ fontSize: 15, fontStyle: 'italic', color: '#6B5057', marginTop: 12 }}>
+          {isListening ? "I'm listening, dear mama…" : 'Tap to speak'}
         </p>
+        {isProcessing && (
+          <p style={{ fontSize: 11, color: '#F9A8D4', marginTop: 4, animation: 'float 2s infinite' }}>Processing...</p>
+        )}
+      </div>
+
+      {/* Transcript Input */}
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.45)',
+          borderRadius: '2rem',
+          padding: '20px',
+          marginBottom: 16,
+        }}
+      >
+        <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 10 }}>
+          Your message (click to edit)
+        </label>
+        <textarea
+          value={transcript}
+          onChange={(e) => setTranscript(e.target.value)}
+          placeholder="Speak or type your symptoms here..."
+          style={{
+            width: '100%',
+            height: 100,
+            padding: '12px',
+            borderRadius: '1.2rem',
+            border: '1.5px solid rgba(252,165,165,0.2)',
+            background: 'rgba(255,255,255,0.5)',
+            fontSize: 14,
+            fontFamily: "'DM Sans', sans-serif",
+            resize: 'none',
+            outline: 'none',
+            transition: 'border-color 0.2s',
+          }}
+          onFocus={(e) => (e.target.style.borderColor = '#F9A8D4')}
+          onBlur={(e) => (e.target.style.borderColor = 'rgba(252,165,165,0.2)')}
+        />
       </div>
 
       {/* Symptom chips */}
@@ -561,7 +661,7 @@ function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => v
           {SYMPTOMS.map((s) => (
             <button
               key={s}
-              onClick={() => toggle(s)}
+              onClick={() => toggleSymptom(s)}
               style={{
                 padding: '8px 14px',
                 borderRadius: '2rem',
@@ -579,50 +679,32 @@ function VoiceScreen( { onTriageComplete }: { onTriageComplete: (data: any) => v
           ))}
         </div>
         <button
-          onClick={runTriage}
-          disabled={!selected.length || loading}
+          onClick={handleSend}
+          disabled={(!selected.length && !transcript.trim()) || loading}
           style={{
             width: '100%',
             padding: '13px 20px',
-            background: !selected.length || loading ? '#E5E7EB' : 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
-            color: !selected.length || loading ? '#9CA3AF' : '#fff',
+            background: (!selected.length && !transcript.trim()) || loading ? '#E5E7EB' : 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+            color: (!selected.length && !transcript.trim()) || loading ? '#9CA3AF' : '#fff',
             border: 'none',
             borderRadius: '1.4rem',
             fontFamily: "'DM Sans',sans-serif",
             fontWeight: 500,
             fontSize: 14,
-            cursor: !selected.length || loading ? 'not-allowed' : 'pointer',
+            cursor: (!selected.length && !transcript.trim()) || loading ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
+            boxShadow: (!selected.length && !transcript.trim()) || loading ? 'none' : '0 8px 20px rgba(249,168,212,0.3)',
           }}
         >
           {loading ? 'Assessing…' : 'Get AI Assessment'}
         </button>
       </div>
-
-      {/* Result */}
-      {result && (
-        <div
-          style={{
-            background: 'rgba(240,255,244,0.8)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(110,231,183,0.3)',
-            borderRadius: '2rem',
-            padding: '20px',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <SvgIcon paths={ICON_PATHS.heart} size={20} stroke="#059669" strokeWidth={1.8} />
-            <p style={{ fontSize: 14, color: '#1C1014', lineHeight: 1.75 }}>{result}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 // ─── EMERGENCY SCREEN ─────────────────────────────────────────────────────────
-function EmergencyScreen({ userData }: { userData: UserData }) {
+function EmergencyScreen({ userData, t }: { userData: UserData; t: (k: string) => string }) {
   const warnings = [
     'Heavy or continuous bleeding',
     'Severe headache with vision changes',
@@ -667,7 +749,7 @@ function EmergencyScreen({ userData }: { userData: UserData }) {
           boxShadow: '0 8px 28px rgba(239,68,68,0.35)',
         }}
       >
-        📞 Call Emergency — 112
+        📞 {t('emergency_btn')} — 112
       </button>
 
       <button
@@ -685,7 +767,7 @@ function EmergencyScreen({ userData }: { userData: UserData }) {
           marginBottom: 20,
         }}
       >
-        🏥 Call {userData.hospital || 'Your Hospital'}
+        🏥 {t('hospital')} — {userData.hospital || 'Your Hospital'}
       </button>
 
       <div
@@ -728,6 +810,7 @@ type ScreenType = 'home' | 'voice' | 'emergency' | 'triage_result';
 function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
   const [screen, setScreen] = useState<ScreenType>('home');
   const [triageData, setTriageData] = useState<any>(null);
+  const { t } = useTranslation(userData.lang || 'en');
 
   // ✅ Important calculations
   const { week } = calcPregnancyInfo(userData.dueDate);
@@ -743,9 +826,9 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
   };
 
   const navItems: { id: ScreenType; label: string; paths: string[] }[] = [
-    { id: 'home', label: 'Home', paths: ICON_PATHS.home },
-    { id: 'voice', label: 'Triage', paths: ICON_PATHS.mic },
-    { id: 'emergency', label: 'Emergency', paths: ICON_PATHS.alert },
+    { id: 'home', label: t('home') || 'Home', paths: ICON_PATHS.home },
+    { id: 'voice', label: t('voice') || 'Triage', paths: ICON_PATHS.mic },
+    { id: 'emergency', label: t('emergency') || 'Emergency', paths: ICON_PATHS.alert },
   ];
 
   return (
@@ -846,10 +929,10 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
         }}>
           <div>
             <p style={{ fontSize: 12, color: '#F9A8D4', fontWeight: 500 }}>
-              Good morning, {userData.name?.split(' ')[0] || 'Mama'} 🌸
+              {t('welcome')}, {userData.name?.split(' ')[0] || 'Mama'} 🌸
             </p>
             <p style={{ fontSize: 17, fontFamily: "'Playfair Display',serif", fontWeight: 300, fontStyle: 'italic', color: '#1C1014' }}>
-              Week {week} · Growing beautifully
+              {t('weeks_count')} {week} · Growing beautifully
             </p>
           </div>
         </header>
@@ -859,14 +942,14 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
           {screen === 'home' && (
             <div style={{ maxWidth: 1100, margin: '0 auto' }}>
               <div style={{ marginBottom: 24 }}>
-                <h2 style={{ fontSize: 24, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>Your Garden</h2>
+                <h2 style={{ fontSize: 24, fontFamily: "'Playfair Display',serif", fontWeight: 300, color: '#1C1014' }}>{t('journey')}</h2>
                 <p style={{ fontSize: 13, color: '#B09099', marginTop: 2 }}>Everything blooming for you today</p>
               </div>
               <div className="bento-grid" style={{ display: 'grid', gap: 20, gridTemplateColumns: '1fr' }}>
-                <PregnancyCard dueDate={userData.dueDate} />
-                <HydrationCard count={userData.waterCount || 0} onAdd={addWater} />
-                <NutritionCard />
-                <ClinicalCard lastVisit={userData.lastVisit} nextAppointment={userData.nextAppointment} />
+                <PregnancyCard dueDate={userData.dueDate} t={t} />
+                <HydrationCard count={userData.waterCount || 0} onAdd={addWater} t={t} />
+                <NutritionCard t={t} />
+                <ClinicalCard lastVisit={userData.lastVisit} nextAppointment={userData.nextAppointment} t={t} />
 
                 {/* Gentle movement */}
                 <div
@@ -954,10 +1037,12 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
                   setTriageData(resultData);
                   setScreen('triage_result');
             }} 
+            t={t}
+            lang={userData.lang}
           />
         )}
 
-        {screen === 'emergency' && <EmergencyScreen userData={userData} />}
+        {screen === 'emergency' && <EmergencyScreen userData={userData} t={t} />}
 
         {screen === 'triage_result' && triageData && (
           <TriageResultScreen

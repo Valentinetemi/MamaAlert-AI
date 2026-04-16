@@ -1,6 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import translationsData from '../translation.json';
+
+const translations = translationsData as Record<string, Record<string, string>>;
+
+function useTranslation(lang: string) {
+  const t = (key: string) => {
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
+  };
+  return { t };
+}
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 export interface UserData {
@@ -104,6 +114,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     lastVisit: '',
     nextAppointment: '',
   });
+
+  const { t } = useTranslation(form.lang);
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -279,7 +291,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               </div>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
-                  Your hospital / clinic
+                  {t('hospital')}
                 </label>
                 <select
                   className="input-field"
@@ -297,7 +309,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               </div>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
-                  Last antenatal visit
+                  {t('last_visit')}
                 </label>
                 <input
                   className="input-field"
@@ -308,7 +320,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               </div>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
-                  Next appointment
+                  {t('next_visit')}
                 </label>
                 <input
                   className="input-field"
