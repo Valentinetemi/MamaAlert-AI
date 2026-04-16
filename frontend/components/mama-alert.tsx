@@ -473,7 +473,12 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       };
 
       recog.onend = () => {
+        if (isListening) {
+          recog.start(); //this restart on silence
+        }
+        else{
         setIsListening(false);
+        }
       };
 
       setRecognition(recog);
