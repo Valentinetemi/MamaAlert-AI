@@ -437,9 +437,10 @@ function ClinicalCard({ lastVisit, nextAppointment, t }: { lastVisit: string; ne
 function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: any) => void; t: (k: string) => string; lang: string }) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimText, setInterimText] = useState(''); // live typing effect
+  const [paused, setPaused] = useState(false);        // shows "Continue" button
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const isListeningRef = useRef(false);
 
@@ -452,62 +453,75 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
     recog.lang = lang === 'en' ? 'en-US' : lang === 'yo' ? 'yo-NG' : lang === 'ig' ? 'ig-NG' : lang === 'ha' ? 'ha-NG' : 'en-US';
 
     recog.onresult = (event: any) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
+      let interim = '';
+      let final = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+          final += event.results[i][0].transcript;
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interim += event.results[i][0].transcript;
         }
       }
 
-      if (finalTranscript) {
-        setTranscript(prev => (prev ? prev + ' ' + finalTranscript : finalTranscript));
+      if (final) {
+        setTranscript(prev => (prev ? prev + ' ' + final : final));
+        setInterimText(''); // clear interim once finalised
+      } else {
+        setInterimText(interim); // show live typing
       }
-      setIsProcessing(!!interimTranscript);
     };
 
     recog.onerror = (event: any) => {
       console.error('Speech recognition error', event.error);
       isListeningRef.current = false;
       setIsListening(false);
-      setIsProcessing(false);
+      setInterimText('');
+      setPaused(false);
     };
 
     recog.onend = () => {
+      setInterimText('');
       if (isListeningRef.current) {
-        // auto-restart after silence pause
-        try { recog.start(); } catch {}
-      } else {
+        // paused due to silence — show "Continue" button instead of auto-restarting
         setIsListening(false);
-        setIsProcessing(false);
+        setPaused(true);
       }
     };
 
     setRecognition(recog);
 
     return () => {
-      recog.onend = null; // prevent restart loop on cleanup
+      recog.onend = null;
       recog.stop();
     };
   }, [lang]);
+
+  const startListening = () => {
+    if (!recognition) return;
+    isListeningRef.current = true;
+    setIsListening(true);
+    setPaused(false);
+    try { recognition.start(); } catch {}
+  };
+
+  const stopListening = () => {
+    isListeningRef.current = false;
+    setPaused(false);
+    recognition?.stop();
+    setIsListening(false);
+    setInterimText('');
+  };
 
   const toggleListening = () => {
     if (!recognition) {
       alert('Speech recognition is not supported in this browser.');
       return;
     }
-
-    if (isListeningRef.current) {
-      isListeningRef.current = false;
-      recognition.stop();
-      setIsListening(false);
+    if (isListening || paused) {
+      stopListening();
     } else {
-      isListeningRef.current = true;
-      setIsListening(true);
-      try { recognition.start(); } catch {}
+      startListening();
     }
   };
 
@@ -518,14 +532,9 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
     const finalInput = transcript.trim() || selected.join(', ');
     if (!finalInput) return;
 
-    // stop mic before sending
-    if (isListeningRef.current) {
-      isListeningRef.current = false;
-      recognition?.stop();
-      setIsListening(false);
-    }
-
+    stopListening();
     setLoading(true);
+
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
@@ -534,7 +543,6 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       });
 
       if (!res.ok) throw new Error('Backend error');
-
       const triageResult = await res.json();
       onTriageComplete(triageResult);
     } catch (err) {
@@ -549,7 +557,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       setLoading(false);
     }
   };
-
+  
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Mic Card */}
