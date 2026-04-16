@@ -745,6 +745,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
         </button>
       </div>
     </div>
+    </div>
   );
   }
 
@@ -857,7 +858,6 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
   const [triageData, setTriageData] = useState<any>(null);
   const { t } = useTranslation(userData.lang || 'en');
 
-  // ✅ Important calculations
   const { week } = calcPregnancyInfo(userData.dueDate);
 
   const addWater = () => {
@@ -1074,7 +1074,8 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
                 </div>
               </div>
             </div>
-          )}
+          );
+          }
 
               {screen === 'voice' && (
                   <VoiceScreen 
