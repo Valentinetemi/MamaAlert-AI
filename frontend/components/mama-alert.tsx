@@ -625,13 +625,35 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
             <SvgIcon paths={ICON_PATHS.mic} size={48} stroke="#fff" strokeWidth={1.5} />
           </button>
         </div>
-        <p style={{ fontSize: 15, fontStyle: 'italic', color: '#6B5057', marginTop: 12 }}>
-          {isListening ? "I'm listening, dear mama…" : 'Tap to speak'}
-        </p>
-        {isProcessing && (
-          <p style={{ fontSize: 11, color: '#F9A8D4', marginTop: 4, animation: 'float 2s infinite' }}>Processing...</p>
-        )}
-      </div>
+       </div>
+       <p style={{ fontSize: 15, fontStyle: 'italic', color: '#6B5057', marginTop: 12 }}>
+  {isListening
+    ? "I'm listening...."
+    : paused
+    ? 'Paused — tap to continue'
+    : 'Tap to speak'}
+</p>
+
+{/* Continue Speaking button — only shows on pause */}
+{paused && (
+  <button
+    onClick={startListening}
+    style={{
+      marginTop: 12,
+      padding: '10px 24px',
+      background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '2rem',
+      fontFamily: "'DM Sans',sans-serif",
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: 'pointer',
+    }}
+  >
+    🎙️ Continue Speaking
+  </button>
+)}
 
       {/* Transcript Input */}
       <div
@@ -724,7 +746,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       </div>
     </div>
   );
-}
+  }
 
 // ─── EMERGENCY SCREEN ─────────────────────────────────────────────────────────
 function EmergencyScreen({ userData, t }: { userData: UserData; t: (k: string) => string }) {
