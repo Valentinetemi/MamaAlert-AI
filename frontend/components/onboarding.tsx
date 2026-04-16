@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 export interface UserData {
   name: string;
   phone: string;
-  lang: 'en' | 'yo' | 'pid' | 'ig' | 'ha';
+  lang: 'en' | 'yo' | 'pcm' | 'ig' | 'ha';
   dueDate: string;
   hospital: string;
   lastVisit: string;
@@ -39,7 +39,7 @@ export const LANGS = [
   { id: 'yo' as const, label: 'Yorùbá', sub: 'Yoruba language' },
   { id: 'ig' as const, label: 'Igbo', sub: 'Igbo language' },
   { id: 'ha' as const, label: 'Hausa', sub: 'Hausa language' },
-  { id: 'pid' as const, label: 'Nigerian Pidgin', sub: 'Pidgin English' },
+  { id: 'pcm' as const, label: 'Nigerian Pidgin', sub: 'Pidgin English' },
 ];
 
 export const ICON_PATHS = {
@@ -96,7 +96,7 @@ interface OnboardingProps {
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    lang: 'en' as 'en' | 'yo' | 'ig'| 'ha' | 'pid',
+    lang: 'en' as 'en' | 'yo' | 'ig'| 'ha' | 'pcm',
     name: '',
     phone: '',
     dueDate: '',
