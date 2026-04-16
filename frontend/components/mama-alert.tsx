@@ -578,61 +578,99 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
         </h2>
         <p style={{ fontSize: 13, color: '#B09099', marginBottom: 28 }}>Tell your garden guide how you feel</p>
         
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 170, position: 'relative' }}>
-          {isListening && (
-            <>
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 155,
-                  height: 155,
-                  borderRadius: '50%',
-                  border: '2px solid rgba(249,168,212,0.4)',
-                  animation: 'pulseRing 1.8s ease-in-out infinite',
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  width: 185,
-                  height: 185,
-                  borderRadius: '50%',
-                  border: '1.5px solid rgba(249,168,212,0.2)',
-                  animation: 'pulseRing 1.8s ease-in-out 0.4s infinite',
-                }}
-              />
-            </>
-          )}
-          <button
-            onClick={toggleListening}
-            style={{
-              width: 130,
-              height: 130,
-              borderRadius: '50%',
-              background: isListening ? 'linear-gradient(135deg,#EF4444,#F9A8D4)' : 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.3s',
-              transform: isListening ? 'scale(1.08)' : 'scale(1)',
-              animation: isListening ? 'micPulse 1.5s ease-in-out infinite' : 'none',
-              position: 'relative',
-              zIndex: 1,
-            }}
-          >
-            <SvgIcon paths={ICON_PATHS.mic} size={48} stroke="#fff" strokeWidth={1.5} />
-          </button>
-        </div>
-       </div>
-       <p style={{ fontSize: 15, fontStyle: 'italic', color: '#6B5057', marginTop: 12 }}>
+        {/* Mic Card - Tap to Speak Section */}
+<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 190, position: 'relative' }}>
+  
+  {/* Outer glow rings */}
+  {isListening && (
+    <>
+      <div
+        style={{
+          position: 'absolute',
+          width: 180,
+          height: 180,
+          borderRadius: '50%',
+          border: '2px solid rgba(249, 168, 212, 0.25)',
+          animation: 'pulseRing 2.2s ease-in-out infinite',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          width: 210,
+          height: 210,
+          borderRadius: '50%',
+          border: '1px solid rgba(249, 168, 212, 0.15)',
+          animation: 'pulseRing 2.8s ease-in-out 0.4s infinite',
+        }}
+      />
+    </>
+  )}
+
+  {/* Main Mic Button */}
+  <button
+    onClick={toggleListening}
+    style={{
+      width: 138,
+      height: 138,
+      borderRadius: '50%',
+      background: isListening 
+        ? 'linear-gradient(135deg, #EF4444, #DB2777)' 
+        : 'linear-gradient(135deg, #F9A8D4, #C084FC)',
+      border: 'none',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      transform: isListening ? 'scale(1.12)' : 'scale(1)',
+      boxShadow: isListening 
+        ? '0 0 0 12px rgba(239, 68, 68, 0.25), 0 25px 50px -12px rgba(190, 24, 93, 0.4)'
+        : '0 10px 30px -10px rgba(249, 168, 212, 0.5), 0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      position: 'relative',
+      zIndex: 2,
+    }}
+  >
+    {/* Inner highlight */}
+    <div
+      style={{
+        position: 'absolute',
+        inset: 8,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.25)',
+        opacity: isListening ? 0.3 : 0.15,
+        transition: 'opacity 0.3s',
+      }}
+    />
+
+    <SvgIcon 
+      paths={ICON_PATHS.mic} 
+      size={52} 
+      stroke="#ffffff" 
+      strokeWidth={1.6} 
+    />
+  </button>
+</div>
+
+{/* Status Text */}
+<p
+  style={{
+    fontSize: 15.5,
+    fontStyle: 'italic',
+    color: '#6B5057',
+    marginTop: 16,
+    textAlign: 'center',
+    minHeight: 22,
+    fontWeight: 400,
+  }}
+>
   {isListening
-    ? "I'm listening...."
+    ? "I'm listening... ✨"
     : paused
     ? 'Paused — tap to continue'
     : 'Tap to speak'}
 </p>
+</div>
 
 {/* Continue Speaking button — only shows on pause */}
 {paused && (
@@ -1074,7 +1112,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
                 </div>
               </div>
             </div>
-          );
+          )
           }
 
               {screen === 'voice' && (
