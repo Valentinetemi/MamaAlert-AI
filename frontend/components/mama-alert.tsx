@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding'; 
 import TriageResultScreen from './TriageResult';
 import translationsData from '../translation.json';
@@ -441,48 +441,57 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
   const [loading, setLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+  const isListeningRef = useRef(false);
 
   useEffect(() => {
-    if (SpeechRecognition) {
-      const recog = new SpeechRecognition();
-      recog.continuous = true;
-      recog.interimResults = true;
-      recog.lang = lang === 'en' ? 'en-US' : lang === 'yo' ? 'yo-NG' : lang === 'ig' ? 'ig-NG' : lang === 'ha' ? 'ha-NG' : 'en-US';
+    if (!SpeechRecognition) return;
 
-      recog.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
+    const recog = new SpeechRecognition();
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.lang = lang === 'en' ? 'en-US' : lang === 'yo' ? 'yo-NG' : lang === 'ig' ? 'ig-NG' : lang === 'ha' ? 'ha-NG' : 'en-US';
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          } else {
-            interimTranscript += event.results[i][0].transcript;
-          }
+    recog.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
         }
-        
-        if (finalTranscript) {
-          setTranscript(prev => prev + ' ' + finalTranscript);
-        }
-        setIsProcessing(!!interimTranscript);
-      };
+      }
 
-      recog.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+      if (finalTranscript) {
+        setTranscript(prev => (prev ? prev + ' ' + finalTranscript : finalTranscript));
+      }
+      setIsProcessing(!!interimTranscript);
+    };
+
+    recog.onerror = (event: any) => {
+      console.error('Speech recognition error', event.error);
+      isListeningRef.current = false;
+      setIsListening(false);
+      setIsProcessing(false);
+    };
+
+    recog.onend = () => {
+      if (isListeningRef.current) {
+        // auto-restart after silence pause
+        try { recog.start(); } catch {}
+      } else {
         setIsListening(false);
-      };
+        setIsProcessing(false);
+      }
+    };
 
-      recog.onend = () => {
-        if (isListening) {
-          recog.start(); //this restart on silence
-        }
-        else{
-        setIsListening(false);
-        }
-      };
+    setRecognition(recog);
 
-      setRecognition(recog);
-    }
+    return () => {
+      recog.onend = null; // prevent restart loop on cleanup
+      recog.stop();
+    };
   }, [lang]);
 
   const toggleListening = () => {
@@ -491,11 +500,14 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       return;
     }
 
-    if (isListening) {
+    if (isListeningRef.current) {
+      isListeningRef.current = false;
       recognition.stop();
+      setIsListening(false);
     } else {
-      recognition.start();
+      isListeningRef.current = true;
       setIsListening(true);
+      try { recognition.start(); } catch {}
     }
   };
 
@@ -506,30 +518,32 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
     const finalInput = transcript.trim() || selected.join(', ');
     if (!finalInput) return;
 
+    // stop mic before sending
+    if (isListeningRef.current) {
+      isListeningRef.current = false;
+      recognition?.stop();
+      setIsListening(false);
+    }
+
     setLoading(true);
     try {
-      // Sending to FastAPI backend as requested
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: finalInput,
-          lang: lang
-        }),
+        body: JSON.stringify({ text: finalInput, lang }),
       });
-      
+
       if (!res.ok) throw new Error('Backend error');
-      
+
       const triageResult = await res.json();
       onTriageComplete(triageResult);
     } catch (err) {
       console.error(err);
-      // Fallback if backend is not ready
       onTriageComplete({
         symptom: finalInput,
         analysis: 'Unable to connect to triage server. Please call your doctor or visit your hospital immediately.',
         urgency: 'caution',
-        recommendations: ['Contact your healthcare provider', 'Rest and monitor symptoms']
+        recommendations: ['Contact your healthcare provider', 'Rest and monitor symptoms'],
       });
     } finally {
       setLoading(false);
