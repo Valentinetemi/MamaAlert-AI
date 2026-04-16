@@ -536,13 +536,15 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
     setLoading(true);
 
     try {
-      const res = await fetch('/api/analyze', {
+      const res = await fetch('http://127.0.0.1:8000/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: finalInput, lang }),
+        body: JSON.stringify({ text: finalInput, lang, weeks: 28   }),
       });
 
-      if (!res.ok) throw new Error('Backend error');
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
       const triageResult = await res.json();
       onTriageComplete(triageResult);
     } catch (err) {
