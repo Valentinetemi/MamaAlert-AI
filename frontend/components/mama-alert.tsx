@@ -539,14 +539,26 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       const res = await fetch('http://127.0.0.1:8000/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: finalInput, lang, weeks: 28   }),
+        body: JSON.stringify({ text: finalInput, lang, weeks: 28 }),
       });
 
       if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
       }
-      const triageResult = await res.json();
-      onTriageComplete(triageResult);
+
+      const data = await res.json();
+
+      // Guard: never pass data with missing fields to TriageResultScreen
+      setTriageData({
+        symptom: data.symptom ?? selectedSymptoms,
+        analysis: data.analysis ?? "Please consult your doctor.",
+        urgency: data.urgency ?? "caution",
+        recommendations: Array.isArray(data.recommendations) 
+          ? data.recommendations 
+          : [],
+      });
+
+      onTriageComplete(data);   // You can still call this if needed
       
     } catch (err) {
       console.error(err);
@@ -560,7 +572,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       setLoading(false);
     }
   };
-
+  
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Mic Card */}

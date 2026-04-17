@@ -382,7 +382,7 @@ export default function TriageResultScreen({ triageData, userData, onNewTriage, 
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {triageData.recommendations.map((rec, i) => (
+          {(triageData.recommendations ?? []).map((rec, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -12 }}
