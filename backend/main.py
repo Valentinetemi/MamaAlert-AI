@@ -1,71 +1,101 @@
 import os
-import requests
 from fastapi import FastAPI
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-
+from pydantic import BaseModel
 from dotenv import load_dotenv
+import requests
+import json
+import re
 
-load_dotenv() # This loads the variables from .env
+load_dotenv()
 
-# SETUP
-app = FastAPI()
+app = FastAPI(title="MamaAlert API")
+
+# ==================== FIXED CORS ====================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Pull key from environment (.env)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
+
 class TriageRequest(BaseModel):
     text: str
-    weeks: int
+    lang: str = "en"
+    weeks: int = 28  # default value
+
 
 @app.post("/api/analyze")
-async def analyze(data: TriageRequest):
-    # key to the triage logic
-    prompt = (
-        f"Maternal health triage. User is {data.weeks} weeks pregnant. "
-        f"Symptom: '{data.text}'. "
-        "Provide: 1. Status (Emergency/Urgent/Stable). 2. Action steps."
-    )
-    
+async def analyze_symptoms(request: TriageRequest):
+    if not GEMINI_API_KEY:
+        return {"error": "GEMINI_API_KEY missing in .env"}
+
+    prompt = f"""
+You are a maternal health expert. The user is {request.weeks} weeks pregnant.
+Symptom reported: "{request.text}"
+
+Respond in this exact JSON format:
+{{
+  "analysis": "Short clear explanation",
+  "urgency": "emergency|urgent|stable|caution",
+  "recommendations": ["action 1", "action 2", "action 3"]
+}}
+"""
 
     payload = {
         "contents": [{
-            "parts": [{
-                "text": prompt
-            }]
+            "parts": [{"text": prompt}]
         }]
     }
-    
-#used gemini-3-flash-preview
-    TARGET_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
+
     try:
-        if not GEMINI_API_KEY:
-            return {"error": "API Key missing in .env"}
-            
-        response = requests.post(TARGET_URL, json=payload, timeout=50)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
+        
+        response = requests.post(url, json=payload, timeout=50)
         
         if response.status_code != 200:
             return {
-                "error": "Gemini API Error",
-                "status_code": response.status_code,
-                "details": response.json()
+                "error": "Gemini API error",
+                "status_code": response.status_code
             }
+
+        gemini_data = response.json()
+        # Extract the text response from Gemini
+        try:
             
-        return response.json()
-        
-    except Exception as e:
-        return {"error": "Connection failed", "details": str(e)}
+            ai_text = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
     
+    # Strip markdown code fences Gemini sometimes wraps around JSON
+     clean = re.sub(r"```(?:json)?|```", "", ai_text).strip()
+    
+    parsed = json.loads(clean)
+    
+    # Normalize urgency — map Gemini values to your frontend keys
+    urgency_map = {
+        "emergency": "emergency",
+        "urgent":    "emergency",  # treat urgent as emergency
+        "caution":   "caution",
+        "stable":    "safe",       # map stable → safe
+        "safe":      "safe",
+    }
+    raw_urgency = parsed.get("urgency", "caution").lower()
+    urgency = urgency_map.get(raw_urgency, "caution")
+    
+    return {
+        "symptom": request.text,
+        "analysis": parsed.get("analysis", ai_text),
+        "urgency": urgency,
+        "recommendations": parsed.get("recommendations") or [],
+    }
+
 @app.get("/")
 def home():
-    return {"message": "MamaAlert API is working! Use /api/analyze for symptoms."}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"message": "MamaAlert API is running!"}
