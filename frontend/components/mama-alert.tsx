@@ -434,7 +434,7 @@ function ClinicalCard({ lastVisit, nextAppointment, t }: { lastVisit: string; ne
 }
 
 // ─── VOICE TRIAGE SCREEN ──────────────────────────────────────────────────────
-function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: any) => void; t: (k: string) => string; lang: string; week: number}) {
+function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (data: any) => void; t: (k: string) => string; lang: string; week: number}) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimText, setInterimText] = useState(''); // live typing effect
@@ -450,8 +450,6 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
     recommendations: [] as string[],
   });
   
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-
   useEffect(() => {
     if (!SpeechRecognition) return;
 
@@ -562,7 +560,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
 
       // Guard: never pass data with missing fields to TriageResultScreen
       setTriageData({
-        symptom: data.symptom ?? selectedSymptoms,
+        symptom: data.symptom ?? finalInput,
         analysis: data.analysis ?? "Please consult your doctor.",
         urgency: data.urgency ?? "caution",
         recommendations: Array.isArray(data.recommendations) 
