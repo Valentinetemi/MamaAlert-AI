@@ -117,7 +117,35 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
         },
     }
 
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(url, json=payload)
 
+    if response.status_code != 200:
+        return {"symptom": request.text, **FALLBACK_RESPONSE}
+
+    gemini_data = response.json()
+    raw_text = (
+        gemini_data.get("candidates", [{}])[0]
+        .get("content", {}).get("parts", [{}])[0]
+        .get("text", "")
+    )
+
+    if not raw_text:
+        return {"symptom": request.text, **FALLBACK_RESPONSE}
+
+    parsed = extract_json(raw_text)
+    raw_urgency = str(parsed.get("urgency", "caution")).lower().strip()
+    urgency = URGENCY_MAP.get(raw_urgency, "caution")
+    recommendations = parsed.get("recommendations", FALLBACK_RESPONSE["recommendations"])
+    if not isinstance(recommendations, list) or not recommendations:
+        recommendations = FALLBACK_RESPONSE["recommendations"]
+
+    return {
+        "symptom": request.text,
+        "analysis": parsed.get("analysis", FALLBACK_RESPONSE["analysis"]),
+        "urgency": urgency,
+        "recommendations": recommendations,
+    }
 
 @app.get("/")
 def home():
