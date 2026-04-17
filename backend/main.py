@@ -102,15 +102,15 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
 """
 
     url = (
-   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={GEMINI_API_KEY}"
+    f"https://generativelanguage.googleapis.com/v1beta"
+    f"/models/gemini-3.1-flash-lite-preview:generateContent?key={GEMINI_API_KEY}"
     )
 
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "response_mime_type": "application/json",
-            "temperature": 0.1,      
-            "maxOutputTokens": 150,
+            "temperature": 0.3,      
+            "maxOutputTokens": 512,
         },
     }
 
