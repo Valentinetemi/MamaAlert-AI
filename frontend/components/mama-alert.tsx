@@ -546,7 +546,7 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: selected.join(", "),
+          text: finalInput,
           lang:lang ?? "en",
           weeks: week,
         }),
