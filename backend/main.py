@@ -81,9 +81,9 @@ Respond in this exact JSON format:
     # Normalize urgency — map Gemini values to your frontend keys
     urgency_map = {
         "emergency": "emergency",
-        "urgent":    "emergency",  # treat urgent as emergency
+        "urgent":    "emergency",  
         "caution":   "caution",
-        "stable":    "safe",       # map stable → safe
+        "stable":    "safe",       
         "safe":      "safe",
     }
     raw_urgency = parsed.get("urgency", "caution").lower()
