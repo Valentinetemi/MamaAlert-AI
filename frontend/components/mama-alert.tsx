@@ -434,11 +434,11 @@ function ClinicalCard({ lastVisit, nextAppointment, t }: { lastVisit: string; ne
 }
 
 // ─── VOICE TRIAGE SCREEN ──────────────────────────────────────────────────────
-function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: any) => void; t: (k: string) => string; lang: string }) {
+function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: any) => void; t: (k: string) => string; lang: string; week: number}) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimText, setInterimText] = useState(''); // live typing effect
-  const [paused, setPaused] = useState(false);        // shows "Continue" button
+  const [paused, setPaused] = useState(false);      
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
@@ -544,10 +544,14 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
     setLoading(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: finalInput, lang, weeks: 28 }),
+      const res = await fetch("http://localhost:8000/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: selected.join(", "),
+          lang: userData.lang ?? "en",
+          weeks: week,
+        }),
       });
 
       if (!res.ok) {
@@ -1146,6 +1150,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
             }} 
             t={t}
             lang={userData.lang}
+            week={week}
           />
         )}
 
