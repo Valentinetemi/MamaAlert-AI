@@ -537,44 +537,59 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
   const handleSend = async () => {
     const finalInput = transcript.trim() || selected.join(', ');
     if (!finalInput) return;
-
+  
     stopListening();
     setLoading(true);
-
+  
     try {
       const res = await fetch("http://localhost:8000/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: finalInput,
-          lang:lang ?? "en",
+          text: finalInput,   // ← fixed
+          lang: lang ?? "en",
           weeks: week,
         }),
       });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
+  
+      if (!res.ok || !res.body) throw new Error(`HTTP error ${res.status}`);
+  
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+  
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+  
+        const lines = decoder.decode(value).split("\n").filter(Boolean);
+        for (const line of lines) {
+          try {
+            const chunk = JSON.parse(line);
+  
+            if (chunk.partial) {
+              // optional: you could show a "thinking..." animation here
+              // the response is already being built on server side
+            }
+  
+            if (chunk.done) {
+              const data = chunk;
+              onTriageComplete({
+                symptom: data.symptom ?? finalInput,
+                analysis: data.analysis ?? "Please consult your doctor.",
+                urgency: data.urgency ?? "caution",
+                recommendations: Array.isArray(data.recommendations)
+                  ? data.recommendations
+                  : [],
+              });
+            }
+          } catch {}
+        }
       }
-
-      const data = await res.json();
-
-      // Guard: never pass data with missing fields to TriageResultScreen
-      setTriageData({
-        symptom: data.symptom ?? finalInput,
-        analysis: data.analysis ?? "Please consult your doctor.",
-        urgency: data.urgency ?? "caution",
-        recommendations: Array.isArray(data.recommendations) 
-          ? data.recommendations 
-          : [],
-      });
-
-      onTriageComplete(data);   // You can still call this if needed
-      
     } catch (err) {
       console.error(err);
       onTriageComplete({
         symptom: finalInput,
-        analysis: 'Unable to connect to triage server. Please call your doctor or visit your hospital immediately.',
+        analysis: 'Unable to connect. Please call your doctor or visit your hospital immediately.',
         urgency: 'caution',
         recommendations: ['Contact your healthcare provider', 'Rest and monitor symptoms'],
       });
@@ -582,7 +597,7 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
       setLoading(false);
     }
   };
-
+  
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Mic Card */}
