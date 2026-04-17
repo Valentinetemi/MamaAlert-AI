@@ -115,13 +115,14 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
     }
 
     response = requests.post(url, json=payload, timeout=50)
-
+     
     if response.status_code != 200:
         return {
-            "symptom": request.text,
-            **FALLBACK_RESPONSE,
-            "error": f"Gemini API returned status {response.status_code}",
-        }
+        "symptom": request.text,
+        **FALLBACK_RESPONSE,
+        "error": f"Gemini API returned status {response.status_code}",
+        "debug": response.json(), 
+    }
 
     gemini_data = response.json()
 
