@@ -106,29 +106,30 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
 
     url = (
         f"https://generativelanguage.googleapis.com/v1beta"
-        f"/models/gemini-2.0-flash-lite:streamGenerateContent?alt=sse&key={GEMINI_API_KEY}"
+        f"/models/gemini-2.0-flash-lite:generateContent?key={GEMINI_API_KEY}"
     )
 
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
+            "response_mime_type": "application/json", # Forces Gemini to return JSON
             "temperature": 0.3,
             "maxOutputTokens": 512,
         },
     }
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=50) as client:
         response = await client.post(url, json=payload)
 
     if response.status_code != 200:
-        return {"symptom": request.text, **FALLBACK_RESPONSE}
+        return {"symptom": request.text, **FALLBACK_RESPONSE, "debug": response.status_code}
 
     gemini_data = response.json()
-    raw_text = (
-        gemini_data.get("candidates", [{}])[0]
-        .get("content", {}).get("parts", [{}])[0]
-        .get("text", "")
-    )
+    
+    try: 
+        raw_text = gemini_data('candidates')[0]['content']['parts'][0]['text']
+    except  (KeyError, IndexError):
+        return {"symptom": request.text, **FALLBACK_RESPONSE, "error": "Unexpected JSON structure"}
 
     if not raw_text:
         return {"symptom": request.text, **FALLBACK_RESPONSE}
