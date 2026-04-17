@@ -75,9 +75,22 @@ function Blob({ style }: { style?: React.CSSProperties }) {
 }
 
 export default function TriageResultScreen({ triageData, userData, onNewTriage, onBack }: TriageResultScreenProps) {
-  const { week, trimester } = calcPregnancyInfo(userData.dueDate);
-  const cfg = urgencyConfig[triageData.urgency];
-  const isEmergency = triageData.urgency === 'emergency';
+    const { week, trimester } = calcPregnancyInfo(userData.dueDate);
+
+    // Safe urgency config with fallback
+    const getUrgencyConfig = (urgency?: string) => {
+      const configs = urgencyConfig as any;
+    
+      if (urgency === 'safe' || urgency === 'Safe') return configs.safe;
+      if (urgency === 'caution' || urgency === 'Caution') return configs.caution;
+      if (urgency === 'emergency' || urgency === 'Emergency') return configs.emergency;
+    
+      // Default fallback
+      return configs.caution;
+    };
+    
+    const cfg = getUrgencyConfig(triageData?.urgency);
+    const isEmergency = triageData?.urgency?.toLowerCase() === 'emergency';
 
   return (
     <div

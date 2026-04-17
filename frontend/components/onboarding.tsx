@@ -14,16 +14,16 @@ function useTranslation(lang: string) {
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 export interface UserData {
-  name: string;
-  phone: string;
-  lang: 'en' | 'yo' | 'pcm' | 'ig' | 'ha';
-  dueDate: string;
-  hospital: string;
-  lastVisit: string;
-  nextAppointment: string;
-  waterCount: number;
-  onboardingComplete: boolean;
-}
+    name: string;
+    phone: string;
+    lang: 'en' | 'yo' | 'ig' | 'ha' | 'pcm';
+    dueDate: string;
+    hospital: string;
+    lastVisit: string;
+    nextAppointment: string;
+    waterCount: number;
+    onboardingComplete: boolean;
+  }
 
 export interface IconProps {
   paths: string | string[];
@@ -106,7 +106,7 @@ interface OnboardingProps {
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    lang: 'en' as 'en' | 'yo' | 'ig'| 'ha' | 'pcm',
+    lang: 'en' as 'en' | 'yo' | 'ig' | 'ha' | 'pcm',
     name: '',
     phone: '',
     dueDate: '',

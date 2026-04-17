@@ -547,6 +547,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       }
       const triageResult = await res.json();
       onTriageComplete(triageResult);
+      
     } catch (err) {
       console.error(err);
       onTriageComplete({
