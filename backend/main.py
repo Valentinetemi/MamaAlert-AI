@@ -108,6 +108,7 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
+            "response_mime_type": "application/json",
             "temperature": 0.3,      
             "maxOutputTokens": 512,
         },
