@@ -913,9 +913,7 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
   const [screen, setScreen] = useState<ScreenType>('home');
   const [triageData, setTriageData] = useState<any>(null);
   const { t } = useTranslation(userData.lang || 'en');
-  const [pendingResult, setPendingResult] = useState(false);
-
-
+  const [pendingResult, setPendingResult] = useState(false);  
   const { week } = calcPregnancyInfo(userData.dueDate);
 
   const addWater = () => {
@@ -924,18 +922,20 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
   };
 
   const handleNewTriage = () => {
+  
+    }
+    
+    const handleTriageComplete = (resultData: any) => {
+      setTriageData(resultData);
+      setPendingResult(true);  // triggers the useEffect above
+    };
+
     useEffect(() => {
       if (triageData && pendingResult) {
         setScreen('triage_result');
         setPendingResult(false);
       }
     }, [triageData, pendingResult]);
-    
-    const handleTriageComplete = (resultData: any) => {
-      setTriageData(resultData);
-      setPendingResult(true);  // triggers the useEffect above
-    };
-  };
 
   const navItems: { id: ScreenType; label: string; paths: string[] }[] = [
     { id: 'home', label: t('home') || 'Home', paths: ICON_PATHS.home },
@@ -1146,13 +1146,10 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
 
               {screen === 'voice' && (
                   <VoiceScreen 
-                onTriageComplete={(resultData) => {
-                  setTriageData(resultData);
-                  setScreen('triage_result');
-            }} 
-            t={t}
-            lang={userData.lang}
-            week={week}
+                onTriageComplete={handleTriageComplete}
+                t={t}
+                lang={userData.lang}
+                week={week}
           />
         )}
 
