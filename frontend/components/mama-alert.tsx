@@ -546,45 +546,23 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: finalInput,   // ← fixed
+          text: finalInput,
           lang: lang ?? "en",
           weeks: week,
         }),
       });
   
-      if (!res.ok || !res.body) throw new Error(`HTTP error ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
   
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
+      const data = await res.json();
   
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      onTriageComplete({
+        symptom: data.symptom ?? finalInput,
+        analysis: data.analysis ?? "Please consult your doctor.",
+        urgency: data.urgency ?? "caution",
+        recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
+      });
   
-        const lines = decoder.decode(value).split("\n").filter(Boolean);
-        for (const line of lines) {
-          try {
-            const chunk = JSON.parse(line);
-  
-            if (chunk.partial) {
-              // optional: you could show a "thinking..." animation here
-              // the response is already being built on server side
-            }
-  
-            if (chunk.done) {
-              const data = chunk;
-              onTriageComplete({
-                symptom: data.symptom ?? finalInput,
-                analysis: data.analysis ?? "Please consult your doctor.",
-                urgency: data.urgency ?? "caution",
-                recommendations: Array.isArray(data.recommendations)
-                  ? data.recommendations
-                  : [],
-              });
-            }
-          } catch {}
-        }
-      }
     } catch (err) {
       console.error(err);
       onTriageComplete({
