@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import requests
 from fastapi.responses import StreamingResponse
 import asyncio
+import httpx
+
 
 load_dotenv()
 
@@ -115,66 +117,7 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
         },
     }
 
-    async def stream_response():
-        collected = ""
 
-        import threading
-        result_holder = {}
-        
-        def do_request():
-            r = requests.post(url, json=payload, timeout=50, stream=True)
-            result_holder["response"] = r
-
-        thread = threading.Thread(target=do_request)
-        thread.start()
-        thread.join()
-        
-        r = result_holder.get("response")
-        if not r or r.status_code != 200:
-            yield json.dumps({"symptom": request.text, **FALLBACK_RESPONSE}) + "\n"
-            return
-
-        for line in r.iter_lines():
-            if not line:
-                continue
-            decoded = line.decode("utf-8")
-            if decoded.startswith("data: "):
-                decoded = decoded[6:]
-            try:
-                chunk = json.loads(decoded)
-                text_chunk = (
-                    chunk.get("candidates", [{}])[0]
-                    .get("content", {})
-                    .get("parts", [{}])[0]
-                    .get("text", "")
-                )
-                if text_chunk:
-                    collected += text_chunk
-                    # stream partial analysis as plain text for an instant feel
-                    yield json.dumps({"partial": text_chunk}) + "\n"
-            except Exception:
-                continue
-
-        # Once fully collected, parse and send the final structured response
-        try:
-            parsed = extract_json(collected)
-            raw_urgency = str(parsed.get("urgency", "caution")).lower().strip()
-            urgency = URGENCY_MAP.get(raw_urgency, "caution")
-            recommendations = parsed.get("recommendations", [])
-            if not isinstance(recommendations, list) or len(recommendations) == 0:
-                recommendations = FALLBACK_RESPONSE["recommendations"]
-
-            yield json.dumps({
-                "done": True,
-                "symptom": request.text,
-                "analysis": parsed.get("analysis", FALLBACK_RESPONSE["analysis"]),
-                "urgency": urgency,
-                "recommendations": recommendations,
-            }) + "\n"
-        except Exception:
-            yield json.dumps({"done": True, "symptom": request.text, **FALLBACK_RESPONSE}) + "\n"
-
-    return StreamingResponse(stream_response(), media_type="text/event-stream")
 
 @app.get("/")
 def home():
