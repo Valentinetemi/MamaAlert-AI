@@ -575,7 +575,7 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
       setLoading(false);
     }
   };
-  
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Mic Card */}
@@ -913,6 +913,8 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
   const [screen, setScreen] = useState<ScreenType>('home');
   const [triageData, setTriageData] = useState<any>(null);
   const { t } = useTranslation(userData.lang || 'en');
+  const [pendingResult, setPendingResult] = useState(false);
+
 
   const { week } = calcPregnancyInfo(userData.dueDate);
 
@@ -922,8 +924,17 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
   };
 
   const handleNewTriage = () => {
-    setTriageData(null);
-    setScreen('voice');
+    useEffect(() => {
+      if (triageData && pendingResult) {
+        setScreen('triage_result');
+        setPendingResult(false);
+      }
+    }, [triageData, pendingResult]);
+    
+    const handleTriageComplete = (resultData: any) => {
+      setTriageData(resultData);
+      setPendingResult(true);  // triggers the useEffect above
+    };
   };
 
   const navItems: { id: ScreenType; label: string; paths: string[] }[] = [
