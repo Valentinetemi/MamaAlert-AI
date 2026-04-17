@@ -102,8 +102,7 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
 """
 
     url = (
-    f"https://generativelanguage.googleapis.com/v1beta"
-    f"/models/gemini-3.1-flash-lite-preview:generateContent?key={GEMINI_API_KEY}"
+   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={GEMINI_API_KEY}"
     )
 
     payload = {
