@@ -109,8 +109,8 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "response_mime_type": "application/json",
-            "temperature": 0.3,      
-            "maxOutputTokens": 512,
+            "temperature": 0.1,      
+            "maxOutputTokens": 150,
         },
     }
 
