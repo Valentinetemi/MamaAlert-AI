@@ -443,6 +443,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
   const [loading, setLoading] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const isListeningRef = useRef(false);
+  const [triageData, setTriageData] = useState<any>(null);
 
   useEffect(() => {
     if (!SpeechRecognition) return;
@@ -572,7 +573,7 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
       setLoading(false);
     }
   };
-  
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Mic Card */}
