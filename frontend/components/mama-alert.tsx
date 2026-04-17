@@ -443,7 +443,14 @@ function VoiceScreen({ onTriageComplete, t, lang }: { onTriageComplete: (data: a
   const [loading, setLoading] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const isListeningRef = useRef(false);
-  const [triageData, setTriageData] = useState<any>(null);
+  const [triageData, setTriageData] = useState({
+    symptom: "",
+    analysis: "",
+    urgency: "caution" as const,
+    recommendations: [] as string[],
+  });
+  
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
 
   useEffect(() => {
     if (!SpeechRecognition) return;
