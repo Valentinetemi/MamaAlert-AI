@@ -135,6 +135,7 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
         return {"symptom": request.text, **FALLBACK_RESPONSE}
 
     parsed = extract_json(raw_text)
+    
     raw_urgency = str(parsed.get("urgency", "caution")).lower().strip()
     urgency = URGENCY_MAP.get(raw_urgency, "caution")
     recommendations = parsed.get("recommendations", FALLBACK_RESPONSE["recommendations"])
