@@ -403,7 +403,7 @@ function ClinicalCard({ lastVisit, nextAppointment, t }: { lastVisit: string; ne
           <p style={{ fontSize: 12, color: isOverdue ? '#D97706' : '#059669', marginTop: 2 }}>
             {lastVisit
               ? isOverdue
-                ? `⚠️ ${daysSince} days ago — schedule soon`
+                ? `${daysSince} days ago — schedule soon`
                 : `✓ ${daysSince} days ago — on track`
               : 'No visit logged yet'}
           </p>
