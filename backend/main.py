@@ -127,7 +127,7 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
     gemini_data = response.json()
     
     try: 
-        raw_text = gemini_data('candidates')[0]['content']['parts'][0]['text']
+        raw_text = gemini_data['candidates'][0]['content']['parts'][0]['text']
     except  (KeyError, IndexError):
         return {"symptom": request.text, **FALLBACK_RESPONSE, "error": "Unexpected JSON structure"}
 
