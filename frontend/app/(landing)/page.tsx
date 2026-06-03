@@ -4,38 +4,16 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heart, Brain, Users, Shield, Clock, TrendingUp } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
-const features = [
-  {
-    icon: Brain,
-    title: 'AI-Powered Analysis',
-    description: 'Advanced machine learning analyzes your symptoms instantly and provides accurate assessments.',
-  },
-  {
-    icon: Clock,
-    title: 'Immediate Response',
-    description: 'Get real-time risk assessment and actionable recommendations in seconds.',
-  },
-  {
-    icon: Shield,
-    title: 'Confidential & Safe',
-    description: 'Your health data is encrypted and protected. Your privacy is our priority.',
-  },
-  {
-    icon: Users,
-    title: 'Healthcare Integration',
-    description: 'Connect with medical professionals for follow-up care and consultations.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Health Monitoring',
-    description: 'Track symptoms and health trends over time with comprehensive analytics.',
-  },
-  {
-    icon: Heart,
-    title: 'Maternal Focused',
-    description: 'Specifically designed for pregnant women with cultural sensitivity.',
-  },
+const featureIcons = [
+  { icon: Brain, titleKey: 'ai_powered_analysis', descriptionKey: 'advanced_ml' },
+  { icon: Clock, titleKey: 'immediate_response', descriptionKey: 'real_time_assessment' },
+  { icon: Shield, titleKey: 'confidential_safe', descriptionKey: 'data_encrypted' },
+  { icon: Users, titleKey: 'healthcare_integration', descriptionKey: 'connect_providers' },
+  { icon: TrendingUp, titleKey: 'health_monitoring', descriptionKey: 'track_symptoms' },
+  { icon: Heart, titleKey: 'maternal_focused', descriptionKey: 'cultural_sensitivity' },
 ];
 
 const testimonials = [
@@ -60,29 +38,15 @@ const testimonials = [
 ];
 
 const steps = [
-  {
-    number: '1',
-    title: 'Sign Up',
-    description: 'Create your secure account in less than a minute',
-  },
-  {
-    number: '2',
-    title: 'Describe Symptoms',
-    description: 'Tell us about any symptoms or concerns you\'re experiencing',
-  },
-  {
-    number: '3',
-    title: 'Get Analysis',
-    description: 'Receive AI-powered assessment and health recommendations',
-  },
-  {
-    number: '4',
-    title: 'Take Action',
-    description: 'Follow recommendations or connect with healthcare providers',
-  },
+  { number: '1', titleKey: 'sign_up_form', descriptionKey: 'describe_symptoms' },
+  { number: '2', titleKey: 'describe_symptoms', descriptionKey: 'get_analysis' },
+  { number: '3', titleKey: 'get_analysis', descriptionKey: 'take_action' },
+  { number: '4', titleKey: 'take_action', descriptionKey: 'product' },
 ];
 
 export default function LandingPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen bg-[#f5ede3]">
       {/* Navigation */}
@@ -92,15 +56,16 @@ export default function LandingPage() {
             <Heart className="w-6 h-6 text-[#f4c2c6]" />
             <span className="font-bold text-lg text-gray-900">MamaAlert</span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            <LanguageSwitcher />
             <Link href="/signin">
               <Button variant="outline" className="border-gray-300 text-gray-900 hover:bg-gray-50">
-                Sign In
+                {t('sign_in')}
               </Button>
             </Link>
             <Link href="/signup">
               <Button className="bg-[#a8c5a3] hover:bg-[#96b391] text-white">
-                Get Started
+                {t('get_started')}
               </Button>
             </Link>
           </div>
@@ -112,20 +77,20 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Maternal Health Support at Your Fingertips
+              {t('maternal_health')}
             </h1>
             <p className="text-xl text-gray-600 mb-8">
-              AI-powered health assessment designed specifically for pregnant women. Get instant insights and connect with healthcare providers when you need them most.
+              {t('ai_powered')}
             </p>
             <div className="flex gap-4">
               <Link href="/signup">
                 <Button className="bg-[#f4c2c6] hover:bg-[#f0b0b7] text-gray-900 text-lg px-8 py-6">
-                  Start Free Today
+                  {t('start_free')}
                 </Button>
               </Link>
               <Link href="#how-it-works">
                 <Button variant="outline" className="border-gray-300 text-gray-900 hover:bg-gray-50 text-lg px-8 py-6">
-                  Learn More
+                  {t('learn_more')}
                 </Button>
               </Link>
             </div>
@@ -133,7 +98,7 @@ export default function LandingPage() {
           <div className="bg-gradient-to-br from-[#f4c2c6]/20 to-[#a8c5a3]/20 rounded-2xl p-12 flex items-center justify-center min-h-96">
             <div className="text-center">
               <Heart className="w-24 h-24 text-[#f4c2c6] mx-auto mb-4" />
-              <p className="text-gray-600">Your wellness journey starts here</p>
+              <p className="text-gray-600">{t('join_mama_alert')}</p>
             </div>
           </div>
         </div>
@@ -143,11 +108,11 @@ export default function LandingPage() {
       <section className="bg-white py-20 border-t border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose MamaAlert</h2>
-            <p className="text-xl text-gray-600">Comprehensive maternal health support built with care and expertise</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">{t('why_choose')}</h2>
+            <p className="text-xl text-gray-600">{t('comprehensive_support')}</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => {
+            {featureIcons.map((feature, index) => {
               const Icon = feature.icon;
               return (
                 <Card key={index} className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
@@ -155,10 +120,10 @@ export default function LandingPage() {
                     <div className="bg-[#a8c5a3]/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
                       <Icon className="w-6 h-6 text-[#a8c5a3]" />
                     </div>
-                    <CardTitle className="text-lg text-gray-900">{feature.title}</CardTitle>
+                    <CardTitle className="text-lg text-gray-900">{t(feature.titleKey as any)}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600">{feature.description}</p>
+                    <p className="text-gray-600">{t(feature.descriptionKey as any)}</p>
                   </CardContent>
                 </Card>
               );
@@ -170,8 +135,8 @@ export default function LandingPage() {
       {/* How It Works */}
       <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
-          <p className="text-xl text-gray-600">Simple, quick, and secure process</p>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">{t('how_it_works')}</h2>
+          <p className="text-xl text-gray-600">{t('simple_secure')}</p>
         </div>
         <div className="grid md:grid-cols-4 gap-8">
           {steps.map((step, index) => (
@@ -183,8 +148,8 @@ export default function LandingPage() {
                 <div className="bg-[#a8c5a3] text-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
                   <span className="text-3xl font-bold">{step.number}</span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">{step.title}</h3>
-                <p className="text-gray-600 text-center text-sm">{step.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">{t(step.titleKey as any)}</h3>
+                <p className="text-gray-600 text-center text-sm">{t(step.descriptionKey as any)}</p>
               </div>
             </div>
           ))}
@@ -195,8 +160,8 @@ export default function LandingPage() {
       <section className="bg-white py-20 border-t border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">What People Say</h2>
-            <p className="text-xl text-gray-600">Trusted by expecting mothers and healthcare providers</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">{t('what_people_say')}</h2>
+            <p className="text-xl text-gray-600">{t('trusted_by')}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
@@ -221,13 +186,13 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h2 className="text-4xl font-bold text-gray-900 mb-6">Ready to Take Control of Your Maternal Health?</h2>
+        <h2 className="text-4xl font-bold text-gray-900 mb-6">{t('ready_to_start')}</h2>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Join thousands of women who trust MamaAlert for their pregnancy health monitoring and support.
+          {t('join_thousands')}
         </p>
         <Link href="/signup">
           <Button className="bg-[#a8c5a3] hover:bg-[#96b391] text-white text-lg px-10 py-7">
-            Get Started - It's Free
+            {t('get_started_free')}
           </Button>
         </Link>
       </section>
@@ -244,32 +209,32 @@ export default function LandingPage() {
               <p className="text-sm text-gray-600">Maternal health support powered by AI</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Product</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('product')}</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-gray-900">Features</a></li>
-                <li><a href="#" className="hover:text-gray-900">Security</a></li>
-                <li><a href="#" className="hover:text-gray-900">Pricing</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('features')}</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('security')}</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('pricing')}</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('company')}</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-gray-900">About</a></li>
-                <li><a href="#" className="hover:text-gray-900">Blog</a></li>
-                <li><a href="#" className="hover:text-gray-900">Contact</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('about')}</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('blog')}</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('contact')}</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('legal')}</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-gray-900">Privacy</a></li>
-                <li><a href="#" className="hover:text-gray-900">Terms</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('privacy')}</a></li>
+                <li><a href="#" className="hover:text-gray-900">{t('terms')}</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-8">
             <p className="text-center text-sm text-gray-600">
-              &copy; 2024 MamaAlert. All rights reserved. | Not a substitute for professional medical advice.
+              &copy; 2024 MamaAlert. {t('all_rights_reserved')}
             </p>
           </div>
         </div>
