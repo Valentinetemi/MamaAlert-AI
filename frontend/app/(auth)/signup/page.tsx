@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, ArrowRight, Baby, CalendarDays, CheckCircle, Eye, EyeOff, HeartPulse, Hospital, ShieldCheck } from 'lucide-react';
@@ -42,6 +42,11 @@ export default function SignUpPage() {
     e.preventDefault();
     setError('');
     setSuccess(false);
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured yet. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in frontend/.env.local.');
+      return;
+    }
 
     if (!validateForm()) return;
 

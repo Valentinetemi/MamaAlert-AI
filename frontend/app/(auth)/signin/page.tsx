@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, ArrowRight, CalendarClock, Eye, EyeOff, HeartPulse, LockKeyhole, PhoneCall, ShieldCheck } from 'lucide-react';
@@ -21,6 +21,12 @@ export default function SignInPage() {
     e.preventDefault();
     setError('');
     setNotice('');
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured yet. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in frontend/.env.local.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -45,6 +51,11 @@ export default function SignInPage() {
   const handlePasswordReset = async () => {
     setError('');
     setNotice('');
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured yet. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in frontend/.env.local.');
+      return;
+    }
 
     if (!email) {
       setError('Enter your email address first, then request a reset link.');
