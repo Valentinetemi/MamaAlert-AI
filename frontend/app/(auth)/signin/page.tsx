@@ -14,11 +14,13 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
 
     try {
@@ -35,6 +37,35 @@ export default function SignInPage() {
       router.push('/');
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setError('');
+    setNotice('');
+
+    if (!email) {
+      setError('Enter your email address first, then request a reset link.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/signin`,
+      });
+
+      if (resetError) {
+        setError(resetError.message);
+        return;
+      }
+
+      setNotice('Password reset link sent. Please check your email.');
+    } catch (err) {
+      setError('Unable to send a reset link right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -108,6 +139,12 @@ export default function SignInPage() {
                     <p className="text-sm text-red-700">{error}</p>
                   </div>
                 )}
+                {notice && (
+                  <div className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
+                    <p className="text-sm text-green-800">{notice}</p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-[#4a3a36]">Email address</label>
@@ -125,7 +162,12 @@ export default function SignInPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <label className="text-sm font-medium text-[#4a3a36]">Password</label>
-                    <button type="button" className="text-sm font-medium text-[#26604b] hover:text-[#1d4939]">
+                    <button
+                      type="button"
+                      onClick={handlePasswordReset}
+                      disabled={loading}
+                      className="text-sm font-medium text-[#26604b] hover:text-[#1d4939] disabled:opacity-60"
+                    >
                       Forgot?
                     </button>
                   </div>
