@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef} from 'react';
 import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding'; 
 import TriageResultScreen from './TriageResult';
 import translationsData from '../translation.json';
+import { analyzeSymptoms } from '@/lib/api';
 
 const translations = translationsData as Record<string, Record<string, string>>;
 
@@ -542,19 +543,11 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
     setLoading(true);
   
     try {
-      const res = await fetch("http://localhost:8000/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: finalInput,
-          lang: lang ?? "en",
-          weeks: week,
-        }),
+      const data = await analyzeSymptoms({
+        text: finalInput,
+        lang: lang ?? "en",
+        weeks: week,
       });
-  
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-  
-      const data = await res.json();
   
       onTriageComplete({
         symptom: data.symptom ?? finalInput,
