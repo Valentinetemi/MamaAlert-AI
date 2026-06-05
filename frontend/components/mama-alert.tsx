@@ -1,10 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useRef} from 'react';
+import { useRouter } from 'next/navigation';
 import Onboarding, { UserData, SvgIcon, ICON_PATHS } from './onboarding'; 
 import TriageResultScreen from './TriageResult';
 import translationsData from '../translation.json';
 import { analyzeSymptoms } from '@/lib/api';
+import { createClient } from '@/lib/supabase/client';
+import {
+  loadStoredProfile,
+  mergeProfile,
+  metadataFromUserData,
+  saveStoredProfile,
+  seedOnboardingData,
+} from '@/lib/auth';
 
 const translations = translationsData as Record<string, Record<string, string>>;
 
@@ -902,7 +911,15 @@ function EmergencyScreen({ userData, t }: { userData: UserData; t: (k: string) =
 
 type ScreenType = 'home' | 'voice' | 'emergency' | 'triage_result';
 
-function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patch: Partial<UserData>) => void }) {
+function Dashboard({
+  userData,
+  onUpdate,
+  onSignOut,
+}: {
+  userData: UserData;
+  onUpdate: (patch: Partial<UserData>) => void;
+  onSignOut: () => void;
+}) {
   const [screen, setScreen] = useState<ScreenType>('home');
   const [triageData, setTriageData] = useState<any>(null);
   const { t } = useTranslation(userData.lang || 'en');
@@ -1017,11 +1034,29 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
             <div style={{ width: 34, height: 34, borderRadius: '0.8rem', background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: 13 }}>
               {(userData.name || 'M')[0].toUpperCase()}
             </div>
-            <div className="sidebar-label" style={{ overflow: 'hidden' }}>
+            <div className="sidebar-label" style={{ overflow: 'hidden', flex: 1 }}>
               <p style={{ fontWeight: 500, fontSize: 13, color: '#1C1014' }}>{userData.name}</p>
               <p style={{ fontSize: 11, color: '#B09099' }}>Week {week}</p>
             </div>
           </div>
+          <button
+            onClick={onSignOut}
+            className="sidebar-label"
+            style={{
+              marginTop: 10,
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '1rem',
+              border: '1px solid rgba(249,168,212,0.25)',
+              background: 'transparent',
+              color: '#6B5057',
+              fontFamily: "'DM Sans',sans-serif",
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Sign out
+          </button>
         </div>
       </aside>
 
@@ -1218,40 +1253,89 @@ function Dashboard({ userData, onUpdate }: { userData: UserData; onUpdate: (patc
 
 // ─── ROOT COMPONENT ───────────────────────────────────────────────────────────
 export default function MamaAlert() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [onboardingSeed, setOnboardingSeed] = useState<Partial<UserData>>({});
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('mama_alert_user');
-      if (saved) {
-        const parsed: UserData = JSON.parse(saved);
-        if (parsed.onboardingComplete) setUserData(parsed);
-      }
-    } catch {
-      // localStorage unavailable — user will go through onboarding fresh
-    }
-    setMounted(true);
-  }, []);
+    const supabase = createClient();
 
-  const handleOnboardingComplete = (data: Omit<UserData, 'waterCount' | 'onboardingComplete'>) => {
+    async function loadUser() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.replace('/landing');
+          return;
+        }
+
+        setUserId(user.id);
+        const stored = loadStoredProfile(user.id);
+        const profile = mergeProfile(user, stored);
+
+        if (profile) {
+          setUserData(profile);
+        } else {
+          setOnboardingSeed(seedOnboardingData(user));
+        }
+      } catch {
+        router.replace('/landing');
+      } finally {
+        setAuthLoading(false);
+        setMounted(true);
+      }
+    }
+
+    loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setUserData(null);
+        setUserId(null);
+        router.replace('/landing');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  const handleOnboardingComplete = async (data: Omit<UserData, 'waterCount' | 'onboardingComplete'>) => {
+    if (!userId) return;
+
     const full: UserData = { ...data, waterCount: 0, onboardingComplete: true };
-    try {
-      localStorage.setItem('mama_alert_user', JSON.stringify(full));
-    } catch {}
+    saveStoredProfile(userId, full);
+
+    const supabase = createClient();
+    await supabase.auth.updateUser({ data: metadataFromUserData(full) });
+
     setUserData(full);
   };
 
-  const handleUpdate = (patch: Partial<UserData>) => {
-    if (!userData) return;
+  const handleUpdate = async (patch: Partial<UserData>) => {
+    if (!userData || !userId) return;
     const updated = { ...userData, ...patch };
-    try {
-      localStorage.setItem('mama_alert_user', JSON.stringify(updated));
-    } catch {}
+    saveStoredProfile(userId, updated);
+
+    const supabase = createClient();
+    await supabase.auth.updateUser({ data: metadataFromUserData(updated) });
+
     setUserData(updated);
   };
 
-  if (!mounted) {
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace('/landing');
+  };
+
+  if (!mounted || authLoading) {
     return (
       <div
         style={{
@@ -1277,7 +1361,9 @@ export default function MamaAlert() {
     );
   }
 
-  if (!userData) return <Onboarding onComplete={handleOnboardingComplete} />;
+  if (!userData) {
+    return <Onboarding onComplete={handleOnboardingComplete} initialData={onboardingSeed} />;
+  }
 
-  return <Dashboard userData={userData} onUpdate={handleUpdate} />;
+  return <Dashboard userData={userData} onUpdate={handleUpdate} onSignOut={handleSignOut} />;
 }

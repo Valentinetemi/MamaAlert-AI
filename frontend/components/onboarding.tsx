@@ -101,18 +101,19 @@ export function SvgIcon({ paths, size = 20, stroke = '#6B5057', strokeWidth = 1.
 // ─── ONBOARDING ───────────────────────────────────────────────────────────────
 interface OnboardingProps {
   onComplete: (data: Omit<UserData, 'waterCount' | 'onboardingComplete'>) => void;
+  initialData?: Partial<Omit<UserData, 'waterCount' | 'onboardingComplete'>>;
 }
 
-export default function Onboarding({ onComplete }: OnboardingProps) {
+export default function Onboarding({ onComplete, initialData }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    lang: 'en' as 'en' | 'yo' | 'ig' | 'ha' | 'pcm',
-    name: '',
-    phone: '',
-    dueDate: '',
-    hospital: '',
-    lastVisit: '',
-    nextAppointment: '',
+    lang: (initialData?.lang || 'en') as 'en' | 'yo' | 'ig' | 'ha' | 'pcm',
+    name: initialData?.name || '',
+    phone: initialData?.phone || '',
+    dueDate: initialData?.dueDate || '',
+    hospital: initialData?.hospital || '',
+    lastVisit: initialData?.lastVisit || '',
+    nextAppointment: initialData?.nextAppointment || '',
   });
 
   const { t } = useTranslation(form.lang);

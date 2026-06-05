@@ -30,7 +30,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#f5ede3',
+  themeColor: '#FFF5F5',
 }
 
 export default function RootLayout({
@@ -39,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-[#f5ede3]">
-      <body className="font-sans antialiased bg-[#f5ede3]">
+    <html lang="en" className="bg-[#FFF5F5]">
+      <body className="font-sans antialiased bg-[#FFF5F5]">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
