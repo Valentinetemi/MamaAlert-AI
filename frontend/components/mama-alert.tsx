@@ -1074,6 +1074,9 @@ function Dashboard({
             <p style={{ fontSize: 17, fontFamily: "'Playfair Display',serif", fontWeight: 300, fontStyle: 'italic', color: '#1C1014' }}>
               {t('weeks_count')} {week} · Growing beautifully
             </p>
+            {userData.location && (
+              <p style={{ fontSize: 12, color: '#B09099', marginTop: 4 }}>📍 {userData.location}</p>
+            )}
           </div>
         </header>
 

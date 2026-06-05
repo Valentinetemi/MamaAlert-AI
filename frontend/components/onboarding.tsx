@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import translationsData from '../translation.json';
 
 const translations = translationsData as Record<string, Record<string, string>>;
@@ -19,6 +19,9 @@ export interface UserData {
     lang: 'en' | 'yo' | 'ig' | 'ha' | 'pcm';
     dueDate: string;
     hospital: string;
+    location: string;
+    city: string;
+    state: string;
     lastVisit: string;
     nextAppointment: string;
     waterCount: number;
@@ -43,6 +46,77 @@ export const HOSPITALS = [
   'Federal Medical Centre',
   'Other',
 ];
+
+const REGION_HOSPITALS: Record<string, string[]> = {
+  Lagos: ['Lagos University Teaching Hospital', 'Federal Medical Centre'],
+  Abuja: ['National Hospital Abuja', 'Federal Medical Centre'],
+  FCT: ['National Hospital Abuja', 'Federal Medical Centre'],
+  Ibadan: ['UCH Ibadan', 'Federal Medical Centre'],
+  Oyo: ['UCH Ibadan', 'Federal Medical Centre'],
+  Enugu: ['UNTH Enugu', 'Federal Medical Centre'],
+  Kano: ['Aminu Kano Teaching Hospital', 'Federal Medical Centre'],
+};
+
+const LAST_VISIT_OPTIONS = [
+  { id: 'this_week', label: 'This week', sub: 'Had a check-up recently', daysAgo: 4 },
+  { id: 'two_weeks', label: 'About 2 weeks ago', sub: 'Typical antenatal gap', daysAgo: 14 },
+  { id: 'last_month', label: 'About a month ago', sub: 'Due for another visit soon', daysAgo: 30 },
+  { id: 'over_month', label: 'Over a month ago', sub: 'We\'ll remind you to book', daysAgo: 45 },
+  { id: 'first_visit', label: 'Not yet / first visit', sub: 'We\'ll help you get started', daysAgo: null },
+] as const;
+
+const NEXT_APPOINTMENT_OPTIONS = [
+  { id: 'next_week', label: 'Next week', sub: 'Coming up soon', daysAhead: 7 },
+  { id: 'two_weeks', label: 'In 2 weeks', sub: 'Standard follow-up', daysAhead: 14 },
+  { id: 'four_weeks', label: 'In 4 weeks', sub: 'Monthly check-in', daysAhead: 28 },
+  { id: 'six_weeks', label: 'In 6 weeks', sub: 'Plenty of time', daysAhead: 42 },
+  { id: 'not_scheduled', label: 'Not scheduled yet', sub: 'We\'ll nudge you to book', daysAhead: null },
+] as const;
+
+function toDateString(date: Date) {
+  return date.toISOString().split('T')[0];
+}
+
+function daysAgoToDate(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return toDateString(d);
+}
+
+function daysAheadToDate(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return toDateString(d);
+}
+
+function hospitalsForArea(city: string, state: string) {
+  const matches = new Set<string>();
+  for (const key of [city, state]) {
+    if (!key) continue;
+    for (const [region, list] of Object.entries(REGION_HOSPITALS)) {
+      if (region.toLowerCase() === key.toLowerCase()) {
+        list.forEach((h) => matches.add(h));
+      }
+    }
+  }
+  const suggested = matches.size ? [...matches] : [...HOSPITALS.filter((h) => h !== 'Other')];
+  return [...suggested, 'Other'];
+}
+
+async function reverseGeocode(lat: number, lon: number) {
+  const res = await fetch(
+    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+  );
+  if (!res.ok) throw new Error('Geocode failed');
+  const data = await res.json();
+  const city = data.city || data.locality || '';
+  const state = data.principalSubdivision || '';
+  const country = data.countryName || '';
+  const location = [city, state !== city ? state : '', country !== 'Nigeria' ? country : '']
+    .filter(Boolean)
+    .join(', ');
+  return { city, state, location: location || 'Nigeria' };
+}
 
 export const LANGS = [
   { id: 'en' as const, label: 'English', sub: 'Default language' },
@@ -112,13 +186,68 @@ export default function Onboarding({ onComplete, initialData }: OnboardingProps)
     phone: initialData?.phone || '',
     dueDate: initialData?.dueDate || '',
     hospital: initialData?.hospital || '',
+    location: initialData?.location || '',
+    city: initialData?.city || '',
+    state: initialData?.state || '',
     lastVisit: initialData?.lastVisit || '',
     nextAppointment: initialData?.nextAppointment || '',
   });
+  const [lastVisitChoice, setLastVisitChoice] = useState<string | null>(null);
+  const [nextAppointmentChoice, setNextAppointmentChoice] = useState<string | null>(null);
+  const [customLastVisit, setCustomLastVisit] = useState(false);
+  const [customNextAppointment, setCustomNextAppointment] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
 
   const { t } = useTranslation(form.lang);
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
+  const nearbyHospitals = hospitalsForArea(form.city, form.state);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { city, state, location } = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+          setForm((p) => ({
+            ...p,
+            city,
+            state,
+            location,
+            hospital: p.hospital || hospitalsForArea(city, state)[0] || '',
+          }));
+          setLocationStatus('done');
+        } catch {
+          setLocationStatus('error');
+        }
+      },
+      () => setLocationStatus('error'),
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  };
+
+  useEffect(() => {
+    if (step === 2 && locationStatus === 'idle' && !form.location) {
+      detectLocation();
+    }
+  }, [step]);
+
+  const pickLastVisit = (option: (typeof LAST_VISIT_OPTIONS)[number]) => {
+    setLastVisitChoice(option.id);
+    setCustomLastVisit(false);
+    set('lastVisit', option.daysAgo === null ? '' : daysAgoToDate(option.daysAgo));
+  };
+
+  const pickNextAppointment = (option: (typeof NEXT_APPOINTMENT_OPTIONS)[number]) => {
+    setNextAppointmentChoice(option.id);
+    setCustomNextAppointment(false);
+    set('nextAppointment', option.daysAhead === null ? '' : daysAheadToDate(option.daysAhead));
+  };
 
   const canNext = [
     form.lang !== undefined && form.lang !== null,
@@ -162,12 +291,22 @@ export default function Onboarding({ onComplete, initialData }: OnboardingProps)
         .step-dot { width:8px; height:8px; border-radius:999px; background:rgba(252,165,165,0.3); transition:all 0.3s; }
         .step-dot.active { background:#F9A8D4; width:24px; border-radius:4px; }
         .step-dot.done { background:#6EE7B7; }
+        .chip-btn { width:100%; padding:14px 16px; border:1.5px solid rgba(252,165,165,0.25); border-radius:1.2rem; background:rgba(255,255,255,0.6); cursor:pointer; font-family:'DM Sans',sans-serif; text-align:left; transition:all 0.2s; display:flex; flex-direction:column; gap:2px; }
+        .chip-btn:hover { border-color:#F9A8D4; background:rgba(249,168,212,0.06); }
+        .chip-btn.selected { border-color:#F9A8D4; background:linear-gradient(135deg,rgba(249,168,212,0.14),rgba(147,197,253,0.12)); box-shadow:0 4px 16px rgba(249,168,212,0.15); }
+        .chip-btn span:first-child { font-size:14px; font-weight:500; color:#1C1014; }
+        .chip-btn span:last-child { font-size:12px; color:#B09099; }
+        .location-banner { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:1.2rem; border:1.5px solid rgba(147,197,253,0.35); background:linear-gradient(135deg,rgba(249,168,212,0.1),rgba(147,197,253,0.12)); margin-bottom:16px; }
+        .visit-card { padding:16px; border-radius:1.4rem; border:1.5px solid rgba(252,165,165,0.2); background:rgba(255,255,255,0.55); }
+        .visit-card h3 { font-size:14px; font-weight:500; color:#6B5057; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+        .visit-card p.hint { font-size:12px; color:#B09099; margin:0 0 12px; }
+        .link-btn { background:none; border:none; padding:0; font-family:'DM Sans',sans-serif; font-size:12px; color:#BE185D; cursor:pointer; text-decoration:underline; margin-top:8px; }
       `}</style>
 
       <div
         style={{
           width: '100%',
-          maxWidth: 460,
+          maxWidth: step === 2 ? 500 : 460,
           background: 'rgba(255,255,255,0.88)',
           backdropFilter: 'blur(32px)',
           WebkitBackdropFilter: 'blur(32px)',
@@ -278,6 +417,43 @@ export default function Onboarding({ onComplete, initialData }: OnboardingProps)
               Pregnancy details
             </h2>
             <p style={{ color: '#B09099', fontSize: 13, marginBottom: 20 }}>Help us track your beautiful journey</p>
+
+            <div className="location-banner">
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '1rem',
+                  background: 'linear-gradient(135deg,#F9A8D4,#93C5FD)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <SvgIcon paths={ICON_PATHS.hospital} size={20} stroke="#fff" strokeWidth={2} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 12, color: '#B09099', margin: 0 }}>Your area</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#1C1014', margin: '2px 0 0' }}>
+                  {locationStatus === 'loading' && 'Finding your location…'}
+                  {locationStatus === 'done' && form.location && `📍 ${form.location}`}
+                  {locationStatus === 'error' && 'Could not detect location'}
+                  {locationStatus === 'idle' && !form.location && 'Tap to share your location'}
+                </p>
+              </div>
+              {(locationStatus === 'error' || (locationStatus === 'done' && form.location)) && (
+                <button
+                  type="button"
+                  onClick={detectLocation}
+                  className="link-btn"
+                  style={{ marginTop: 0, flexShrink: 0 }}
+                >
+                  {locationStatus === 'error' ? 'Retry' : 'Refresh'}
+                </button>
+              )}
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
@@ -290,9 +466,10 @@ export default function Onboarding({ onComplete, initialData }: OnboardingProps)
                   onChange={(e) => set('dueDate', e.target.value)}
                 />
               </div>
+
               <div>
                 <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
-                  {t('hospital')}
+                  {form.location ? 'Hospitals near you' : t('hospital')}
                 </label>
                 <select
                   className="input-field"
@@ -301,34 +478,94 @@ export default function Onboarding({ onComplete, initialData }: OnboardingProps)
                   style={{ cursor: 'pointer' }}
                 >
                   <option value="">Select hospital…</option>
-                  {HOSPITALS.map((h) => (
+                  {nearbyHospitals.map((h) => (
                     <option key={h} value={h}>
                       {h}
                     </option>
                   ))}
                 </select>
               </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+
+              <div className="visit-card">
+                <h3>
+                  <SvgIcon paths={ICON_PATHS.hospital} size={16} stroke="#F9A8D4" />
                   {t('last_visit')}
-                </label>
-                <input
-                  className="input-field"
-                  type="date"
-                  value={form.lastVisit}
-                  onChange={(e) => set('lastVisit', e.target.value)}
-                />
+                </h3>
+                <p className="hint">When did you last see your doctor or midwife?</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {LAST_VISIT_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`chip-btn ${lastVisitChoice === option.id ? 'selected' : ''}`}
+                      onClick={() => pickLastVisit(option)}
+                    >
+                      <span>{option.label}</span>
+                      <span>{option.sub}</span>
+                    </button>
+                  ))}
+                </div>
+                {!customLastVisit ? (
+                  <button type="button" className="link-btn" onClick={() => setCustomLastVisit(true)}>
+                    I know the exact date
+                  </button>
+                ) : (
+                  <div style={{ marginTop: 10 }}>
+                    <input
+                      className="input-field"
+                      type="date"
+                      value={form.lastVisit}
+                      onChange={(e) => {
+                        setLastVisitChoice(null);
+                        set('lastVisit', e.target.value);
+                      }}
+                    />
+                    <button type="button" className="link-btn" onClick={() => setCustomLastVisit(false)}>
+                      Use quick options instead
+                    </button>
+                  </div>
+                )}
               </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, color: '#6B5057', display: 'block', marginBottom: 6 }}>
+
+              <div className="visit-card">
+                <h3>
+                  <SvgIcon paths={ICON_PATHS.hospital} size={16} stroke="#93C5FD" />
                   {t('next_visit')}
-                </label>
-                <input
-                  className="input-field"
-                  type="date"
-                  value={form.nextAppointment}
-                  onChange={(e) => set('nextAppointment', e.target.value)}
-                />
+                </h3>
+                <p className="hint">When is your next antenatal appointment?</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {NEXT_APPOINTMENT_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`chip-btn ${nextAppointmentChoice === option.id ? 'selected' : ''}`}
+                      onClick={() => pickNextAppointment(option)}
+                    >
+                      <span>{option.label}</span>
+                      <span>{option.sub}</span>
+                    </button>
+                  ))}
+                </div>
+                {!customNextAppointment ? (
+                  <button type="button" className="link-btn" onClick={() => setCustomNextAppointment(true)}>
+                    I have a specific date
+                  </button>
+                ) : (
+                  <div style={{ marginTop: 10 }}>
+                    <input
+                      className="input-field"
+                      type="date"
+                      value={form.nextAppointment}
+                      onChange={(e) => {
+                        setNextAppointmentChoice(null);
+                        set('nextAppointment', e.target.value);
+                      }}
+                    />
+                    <button type="button" className="link-btn" onClick={() => setCustomNextAppointment(false)}>
+                      Use quick options instead
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

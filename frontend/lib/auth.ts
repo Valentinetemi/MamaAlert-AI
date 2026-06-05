@@ -13,6 +13,9 @@ export function userDataFromMetadata(user: User): Partial<UserData> {
     name: (meta.full_name as string) || '',
     dueDate: (meta.due_date as string) || '',
     hospital: (meta.hospital as string) || '',
+    location: (meta.location as string) || '',
+    city: (meta.city as string) || '',
+    state: (meta.state as string) || '',
     lang: (meta.lang as UserData['lang']) || 'en',
     phone: (meta.phone as string) || '',
     lastVisit: (meta.last_visit as string) || '',
@@ -27,7 +30,13 @@ export function loadStoredProfile(userId: string): UserData | null {
     const saved = localStorage.getItem(profileStorageKey(userId));
     if (!saved) return null;
     const parsed = JSON.parse(saved) as UserData;
-    return parsed.onboardingComplete ? parsed : null;
+    if (!parsed.onboardingComplete) return null;
+    return {
+      ...parsed,
+      location: parsed.location ?? '',
+      city: parsed.city ?? '',
+      state: parsed.state ?? '',
+    };
   } catch {
     return null;
   }
@@ -46,6 +55,9 @@ export function metadataFromUserData(data: UserData) {
     full_name: data.name,
     due_date: data.dueDate,
     hospital: data.hospital,
+    location: data.location,
+    city: data.city,
+    state: data.state,
     lang: data.lang,
     phone: data.phone,
     last_visit: data.lastVisit,
@@ -69,6 +81,9 @@ export function mergeProfile(user: User, stored: UserData | null): UserData | nu
       lang: fromMeta.lang || 'en',
       dueDate: fromMeta.dueDate || '',
       hospital: fromMeta.hospital || '',
+      location: fromMeta.location || '',
+      city: fromMeta.city || '',
+      state: fromMeta.state || '',
       lastVisit: fromMeta.lastVisit || '',
       nextAppointment: fromMeta.nextAppointment || '',
       waterCount: fromMeta.waterCount ?? 0,
@@ -85,6 +100,9 @@ export function seedOnboardingData(user: User): Partial<UserData> {
     name: fromMeta.name || '',
     dueDate: fromMeta.dueDate || '',
     hospital: fromMeta.hospital || '',
+    location: fromMeta.location || '',
+    city: fromMeta.city || '',
+    state: fromMeta.state || '',
     lang: fromMeta.lang || 'en',
     phone: fromMeta.phone || '',
     lastVisit: fromMeta.lastVisit || '',

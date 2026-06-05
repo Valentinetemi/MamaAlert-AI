@@ -4,40 +4,40 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* MamaAlert AI - Soft Cinematic Healthcare Palette */
-  --background: #f5ede3;
-  --foreground: #3d3d3d;
+  /* MamaAlert — baby pink dashboard palette */
+  --background: #FFF5F5;
+  --foreground: #1C1014;
   --card: #ffffff;
-  --card-foreground: #3d3d3d;
+  --card-foreground: #1C1014;
   --popover: #ffffff;
-  --popover-foreground: #3d3d3d;
-  --primary: #f4c2c6;
-  --primary-foreground: #3d3d3d;
-  --secondary: #a8c5a3;
+  --popover-foreground: #1C1014;
+  --primary: #F9A8D4;
+  --primary-foreground: #ffffff;
+  --secondary: #93C5FD;
   --secondary-foreground: #ffffff;
-  --muted: #e8e0d6;
-  --muted-foreground: #8b7b6f;
-  --accent: #d1c4e9;
-  --accent-foreground: #3d3d3d;
-  --destructive: #c85a5f;
+  --muted: #FDF2F8;
+  --muted-foreground: #6B5057;
+  --accent: #FBCFE8;
+  --accent-foreground: #BE185D;
+  --destructive: #EF4444;
   --destructive-foreground: #ffffff;
-  --border: #e8e0d6;
+  --border: #FECDD3;
   --input: #ffffff;
-  --ring: #a8c5a3;
-  --chart-1: #f4c2c6;
-  --chart-2: #a8c5a3;
-  --chart-3: #d1c4e9;
-  --chart-4: #f5ede3;
-  --chart-5: #e8e0d6;
+  --ring: #F9A8D4;
+  --chart-1: #F9A8D4;
+  --chart-2: #93C5FD;
+  --chart-3: #FBCFE8;
+  --chart-4: #FFF5F5;
+  --chart-5: #6EE7B7;
   --radius: 1rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #3d3d3d;
-  --sidebar-primary: #f4c2c6;
-  --sidebar-primary-foreground: #3d3d3d;
-  --sidebar-accent: #a8c5a3;
+  --sidebar-foreground: #1C1014;
+  --sidebar-primary: #F9A8D4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #93C5FD;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #e8e0d6;
-  --sidebar-ring: #a8c5a3;
+  --sidebar-border: #FECDD3;
+  --sidebar-ring: #F9A8D4;
 }
 
 .dark {
