@@ -11,6 +11,7 @@ export interface AnalyzeSymptomsResponse {
   analysis: string;
   urgency: 'safe' | 'caution' | 'emergency';
   recommendations: string[];
+  source?: 'safety_rules' | 'gemini' | 'fallback';
   error?: string;
   debug?: string | number;
 }
