@@ -19,5 +19,8 @@ def test_fever_is_caution():
     assert result["urgency"] == "caution"
 
 
-def test_mild_unknown_symptom_uses_ai_or_fallback():
-    assert rule_based_triage("I feel a little tired") is None
+def test_mild_tiredness_is_safe():
+    result = rule_based_triage("I feel a little tired")
+    assert result is not None
+    assert result["urgency"] == "safe"
+    assert result["source"] == "safety_rules"
