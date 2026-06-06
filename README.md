@@ -54,8 +54,17 @@ uvicorn main:app --reload
 Create a `.env` file in both frontend and backend:
 
 **Frontend:**
+```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 NEXT_PUBLIC_API_URL=your_backend_url
 
+```
 **Backend:**
+```
+GEMINI_API_KEY=your_gemini_key
+```
+
+## Built With ❤️ for Nigerian Mothers
+
+Built for the GitHub Finish-Up-A-Thon Challenge 2026.
