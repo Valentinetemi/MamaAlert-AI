@@ -1,17 +1,17 @@
 import os
 import json
 import re
+from pathlib import Path
+from typing import Literal
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import requests
-from fastapi.responses import StreamingResponse
-import asyncio
 import httpx
 
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 app = FastAPI(title="MamaAlert API")
 
@@ -29,6 +29,7 @@ app.add_middleware(
 )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
 
 URGENCY_MAP = {
     "emergency": "emergency",
@@ -49,6 +50,114 @@ FALLBACK_RESPONSE = {
         "If symptoms worsen suddenly, call emergency services on 112.",
     ],
 }
+
+EMERGENCY_RULES = [
+    (
+        ("bleeding", "blood", "spotting", "clot"),
+        "Bleeding during pregnancy can become serious quickly, especially if it is heavy, painful, or comes with dizziness.",
+    ),
+    (
+        ("convulsion", "seizure", "fit", "fitting"),
+        "Convulsions or seizures in pregnancy are an emergency and need immediate medical care.",
+    ),
+    (
+        ("severe headache", "bad headache", "worst headache"),
+        "A severe headache in pregnancy can be a warning sign, especially with swelling, high blood pressure, or vision changes.",
+    ),
+    (
+        ("blurred vision", "blurry vision", "seeing spots", "vision"),
+        "Vision changes in pregnancy can be a warning sign of high blood pressure or pre-eclampsia.",
+    ),
+    (
+        ("reduced movement", "baby not moving", "no movement", "less movement", "decreased movement"),
+        "Reduced baby movement should be checked urgently so the baby can be assessed.",
+    ),
+    (
+        ("difficulty breathing", "shortness of breath", "can't breathe", "cannot breathe"),
+        "Trouble breathing can be dangerous in pregnancy and needs urgent assessment.",
+    ),
+    (
+        ("chest pain", "fainting", "collapsed", "unconscious"),
+        "Chest pain, fainting, or collapse can signal a serious emergency.",
+    ),
+]
+
+CAUTION_RULES = [
+    (
+        ("fever", "hot body", "temperature", "chills"),
+        "Fever in pregnancy can affect both mother and baby and should be reviewed by a health worker.",
+    ),
+    (
+        ("vomiting", "throwing up", "nausea", "can't keep food", "cannot keep food"),
+        "Ongoing vomiting can cause dehydration, so it is important to monitor fluids and get help if it continues.",
+    ),
+    (
+        ("swelling", "swollen", "puffy face", "puffy hands"),
+        "New or sudden swelling can be a warning sign when it happens with headache, vision changes, or pain.",
+    ),
+    (
+        ("abdominal pain", "stomach pain", "cramps", "pelvic pain"),
+        "Pain in pregnancy can have many causes, and persistent or severe pain should be checked.",
+    ),
+    (
+        ("burning urine", "painful urination", "urine pain", "uti"),
+        "Painful urination may be a urinary infection, which should be treated during pregnancy.",
+    ),
+]
+
+
+def contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
+
+
+def rule_based_triage(text: str) -> dict | None:
+    normalized = text.lower().strip()
+    if not normalized:
+        return None
+
+    for terms, reason in EMERGENCY_RULES:
+        if contains_any(normalized, terms):
+            return {
+                "analysis": reason,
+                "urgency": "emergency",
+                "recommendations": [
+                    "Go to the nearest hospital or maternity emergency unit now.",
+                    "Call emergency services on 112 if you cannot get transport quickly.",
+                    "Do not wait at home for symptoms to pass before seeking care.",
+                ],
+                "source": "safety_rules",
+            }
+
+    for terms, reason in CAUTION_RULES:
+        if contains_any(normalized, terms):
+            return {
+                "analysis": reason,
+                "urgency": "caution",
+                "recommendations": [
+                    "Contact your doctor, midwife, or clinic today for advice.",
+                    "Drink water if you can and note when the symptom started.",
+                    "Go to emergency care immediately if the symptom becomes severe or is joined by bleeding, fainting, severe headache, vision changes, or reduced baby movement.",
+                ],
+                "source": "safety_rules",
+            }
+
+    return None
+
+
+def normalize_triage(parsed: dict, symptom: str) -> dict:
+    raw_urgency = str(parsed.get("urgency", "caution")).lower().strip()
+    urgency: Literal["safe", "caution", "emergency"] = URGENCY_MAP.get(raw_urgency, "caution")  # type: ignore[assignment]
+    recommendations = parsed.get("recommendations", FALLBACK_RESPONSE["recommendations"])
+    if not isinstance(recommendations, list) or not recommendations:
+        recommendations = FALLBACK_RESPONSE["recommendations"]
+
+    return {
+        "symptom": symptom,
+        "analysis": parsed.get("analysis", FALLBACK_RESPONSE["analysis"]),
+        "urgency": urgency,
+        "recommendations": recommendations[:5],
+        "source": parsed.get("source", "gemini"),
+    }
 
 
 def extract_json(text: str) -> dict:
@@ -74,11 +183,16 @@ class TriageRequest(BaseModel):
 
 @app.post("/api/analyze")
 async def analyze_symptoms(request: TriageRequest):
+    safety_result = rule_based_triage(request.text)
+    if safety_result:
+        return {"symptom": request.text, **safety_result}
+
     if not GEMINI_API_KEY:
         return {
             "symptom": request.text,
             **FALLBACK_RESPONSE,
             "error": "GEMINI_API_KEY is missing from .env",
+            "source": "fallback",
         }
 
     prompt = f"""
@@ -101,12 +215,13 @@ Urgency rules:
 - "caution" = symptoms need medical attention within 24 hours
 - "safe" = symptoms are mild and can be monitored at home
 
+Always mark these as emergency: bleeding, convulsions or seizures, severe headache with vision change or swelling, reduced baby movement, trouble breathing, chest pain, fainting, or collapse.
 Be warm, clear, and supportive. Write for a general audience, not medical professionals.
 """
 
     url = (
         f"https://generativelanguage.googleapis.com/v1beta"
-        f"/models/gemini-2.0-flash-lite:generateContent?key={GEMINI_API_KEY}"
+        f"/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     )
 
     payload = {
@@ -119,36 +234,50 @@ Be warm, clear, and supportive. Write for a general audience, not medical profes
     }
 
     async with httpx.AsyncClient(timeout=50) as client:
-        response = await client.post(url, json=payload)
+        try:
+            response = await client.post(url, json=payload)
+        except httpx.HTTPError:
+            return {"symptom": request.text, **FALLBACK_RESPONSE, "error": "Unable to reach Gemini API", "source": "fallback"}
 
     if response.status_code != 200:
-        return {"symptom": request.text, **FALLBACK_RESPONSE, "debug": response.status_code}
+        error_hint = {
+            401: "Invalid GEMINI_API_KEY — get a key from https://aistudio.google.com/apikey",
+            403: "Gemini API access denied — check your API key permissions",
+            429: "Gemini API quota exceeded — check usage at https://ai.dev/rate-limit or wait and retry",
+        }.get(response.status_code, f"Gemini API error ({response.status_code})")
+        return {
+            "symptom": request.text,
+            **FALLBACK_RESPONSE,
+            "error": error_hint,
+            "debug": response.status_code,
+            "source": "fallback",
+        }
 
     gemini_data = response.json()
     
     try: 
         raw_text = gemini_data['candidates'][0]['content']['parts'][0]['text']
     except  (KeyError, IndexError):
-        return {"symptom": request.text, **FALLBACK_RESPONSE, "error": "Unexpected JSON structure"}
+        return {"symptom": request.text, **FALLBACK_RESPONSE, "error": "Unexpected JSON structure", "source": "fallback"}
 
     if not raw_text:
-        return {"symptom": request.text, **FALLBACK_RESPONSE}
+        return {"symptom": request.text, **FALLBACK_RESPONSE, "source": "fallback"}
 
-    parsed = extract_json(raw_text)
+    try:
+        parsed = extract_json(raw_text)
+    except (ValueError, json.JSONDecodeError):
+        return {"symptom": request.text, **FALLBACK_RESPONSE, "error": "Could not parse Gemini response", "source": "fallback"}
     
-    raw_urgency = str(parsed.get("urgency", "caution")).lower().strip()
-    urgency = URGENCY_MAP.get(raw_urgency, "caution")
-    recommendations = parsed.get("recommendations", FALLBACK_RESPONSE["recommendations"])
-    if not isinstance(recommendations, list) or not recommendations:
-        recommendations = FALLBACK_RESPONSE["recommendations"]
-
-    return {
-        "symptom": request.text,
-        "analysis": parsed.get("analysis", FALLBACK_RESPONSE["analysis"]),
-        "urgency": urgency,
-        "recommendations": recommendations,
-    }
+    return normalize_triage(parsed, request.text)
 
 @app.get("/")
 def home():
     return {"message": "MamaAlert API is running!"}
+
+@app.get("/api/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "MamaAlert API",
+        "gemini_configured": bool(GEMINI_API_KEY),
+    }
