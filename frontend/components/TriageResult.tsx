@@ -11,6 +11,8 @@
     analysis: string;
     urgency: 'safe' | 'caution' | 'emergency';
     recommendations: string[];
+    source?: string;
+    error?: string;
   }
 
   interface TriageResultScreenProps {
@@ -352,6 +354,20 @@
             <p style={{ fontSize: 15.5, color: '#1C1014', lineHeight: 1.85, whiteSpace: 'pre-line' }}>
               {triageData.analysis}
             </p>
+            {triageData.error && (
+              <p style={{
+                marginTop: 16,
+                padding: '12px 14px',
+                borderRadius: 14,
+                background: 'rgba(245,158,11,0.08)',
+                border: '1px solid rgba(245,158,11,0.2)',
+                fontSize: 12.5,
+                color: '#92400E',
+                lineHeight: 1.6,
+              }}>
+                Note: {triageData.error}
+              </p>
+            )}
           </motion.div>
 
           {/* ── Recommendations card ── */}

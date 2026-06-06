@@ -563,6 +563,8 @@ function VoiceScreen({ onTriageComplete, t, lang, week }: { onTriageComplete: (d
         analysis: data.analysis ?? "Please consult your doctor.",
         urgency: data.urgency ?? "caution",
         recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
+        source: data.source,
+        error: data.error,
       });
   
     } catch (err) {
