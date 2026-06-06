@@ -54,3 +54,8 @@ uvicorn main:app --reload
 Create a `.env` file in both frontend and backend:
 
 **Frontend:**
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+NEXT_PUBLIC_API_URL=your_backend_url
+
+**Backend:**
