@@ -67,4 +67,4 @@ GEMINI_API_KEY=your_gemini_key
 
 ## Built With ❤️ for Nigerian Mothers
 
-Built for the GitHub Finish-Up-A-Thon Challenge 2026.
+Built for the GitHub Finish-Up-A-Thon Challenge 2026
