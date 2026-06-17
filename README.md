@@ -65,6 +65,6 @@ NEXT_PUBLIC_API_URL=your_backend_url
 GEMINI_API_KEY=your_gemini_key
 ```
 
-## Built With ❤️ for Nigerian Mothers
+## Built With ❤️ for Nigerian Mothers.
 
 Built for the GitHub Finish-Up-A-Thon Challenge 2026
